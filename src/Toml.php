@@ -2,18 +2,33 @@
 
 declare(strict_types=1);
 
-namespace Internal;
+namespace Internal\Toml;
 
-class Toml
+use Internal\Toml\Node\Document;
+use Internal\Toml\Parser\Lexer;
+use Internal\Toml\Parser\Parser;
+
+/**
+ * Public facade for TOML parser.
+ */
+final class Toml
 {
     /**
-     * Decodes a TOML string into an associative array.
-     *
-     * @param string $input The TOML string to decode.
+     * Parse TOML string into Document AST.
      */
-    public static function decodeToArray(string $input): array
+    public static function parse(string $toml): Document
     {
-        // todo
-        return [];
+        $lexer = new Lexer($toml);
+        $parser = new Parser($lexer);
+
+        return $parser->parse();
+    }
+
+    /**
+     * Parse TOML string into PHP array.
+     */
+    public static function parseToArray(string $toml): array
+    {
+        return self::parse($toml)->toArray();
     }
 }

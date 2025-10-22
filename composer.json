@@ -32,7 +32,7 @@
     "prefer-stable": true,
     "autoload": {
         "psr-4": {
-            "Internal\\": "src/"
+            "Internal\\Toml\\": "src/"
         }
     },
     "autoload-dev": {
