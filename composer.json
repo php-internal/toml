@@ -32,12 +32,12 @@
     "prefer-stable": true,
     "autoload": {
         "psr-4": {
-            "Internal\\Destroy\\": "src/"
+            "Internal\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "Internal\\Destroy\\Tests\\": "tests/"
+            "Internal\\Toml\\Tests\\": "tests/"
         }
     },
     "scripts": {
