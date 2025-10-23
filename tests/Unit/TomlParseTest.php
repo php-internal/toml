@@ -9,7 +9,6 @@ use Internal\Toml\Exception\SyntaxException;
 use Internal\Toml\Node\Document;
 use Internal\Toml\Node\Entry;
 use Internal\Toml\Node\Key;
-use Internal\Toml\Node\KeyType;
 use Internal\Toml\Node\Table;
 use Internal\Toml\Node\TableArray;
 use Internal\Toml\Node\Value\ArrayValue;
@@ -135,7 +134,7 @@ TOML;
     // Key Tests
     // ============================================
 
-    public function testParseBareKeyCreatesKeyWithBareType(): void
+    public function testParseBareKeyCreatesKeyWithCorrectSegments(): void
     {
         // Arrange
         $toml = 'simple_key = "value"';
@@ -147,12 +146,12 @@ TOML;
         $entry = $result->nodes[0];
         self::assertInstanceOf(Key::class, $entry->key);
         self::assertSame(['simple_key'], $entry->key->segments);
-        self::assertSame([KeyType::Bare], $entry->key->types);
         self::assertTrue($entry->key->isSimple());
         self::assertFalse($entry->key->isDotted());
+        self::assertSame('simple_key', (string) $entry->key);
     }
 
-    public function testParseQuotedKeyCreatesKeyWithQuotedType(): void
+    public function testParseQuotedKeyCreatesKeyWithCorrectSegments(): void
     {
         // Arrange
         $toml = '"quoted key" = "value"';
@@ -164,7 +163,7 @@ TOML;
         $entry = $result->nodes[0];
         self::assertInstanceOf(Key::class, $entry->key);
         self::assertSame(['quoted key'], $entry->key->segments);
-        self::assertSame([KeyType::Quoted], $entry->key->types);
+        self::assertSame('"quoted key"', (string) $entry->key);
     }
 
     public function testParseDottedKeyCreatesKeyWithMultipleSegments(): void
@@ -179,11 +178,38 @@ TOML;
         $entry = $result->nodes[0];
         self::assertInstanceOf(Key::class, $entry->key);
         self::assertSame(['parent', 'child'], $entry->key->segments);
-        self::assertSame([KeyType::Bare, KeyType::Bare], $entry->key->types);
         self::assertFalse($entry->key->isSimple());
         self::assertTrue($entry->key->isDotted());
         self::assertSame('parent', $entry->key->getFirstSegment());
         self::assertSame('child', $entry->key->getLastSegment());
+        self::assertSame('parent.child', (string) $entry->key);
+    }
+
+    public function testKeyToStringAutoQuotesWhenNeeded(): void
+    {
+        // Arrange & Act - bare key doesn't need quoting
+        $bareKey = new Key(['simple_key'], new \Internal\Toml\Node\Position(1, 1, 0));
+
+        // Assert
+        self::assertSame('simple_key', (string) $bareKey);
+
+        // Arrange & Act - key with spaces needs quoting
+        $quotedKey = new Key(['quoted key'], new \Internal\Toml\Node\Position(1, 1, 0));
+
+        // Assert
+        self::assertSame('"quoted key"', (string) $quotedKey);
+
+        // Arrange & Act - dotted key with mixed types
+        $dottedKey = new Key(['bare', 'has space', 'bare-dash'], new \Internal\Toml\Node\Position(1, 1, 0));
+
+        // Assert
+        self::assertSame('bare."has space".bare-dash', (string) $dottedKey);
+
+        // Arrange & Act - empty key needs quoting
+        $emptyKey = new Key([''], new \Internal\Toml\Node\Position(1, 1, 0));
+
+        // Assert
+        self::assertSame('""', (string) $emptyKey);
     }
 
     // ============================================

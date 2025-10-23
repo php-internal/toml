@@ -11,11 +11,9 @@ final class Key extends Node
 {
     /**
      * @param list<string> $segments - key path segments
-     * @param list<KeyType> $types - type for each segment (Bare or Quoted)
      */
     public function __construct(
         public readonly array $segments,
-        public readonly array $types,
         Position $position,
     ) {
         parent::__construct($position);
@@ -36,11 +34,6 @@ final class Key extends Node
         return $this->segments[$index];
     }
 
-    public function getType(int $index): KeyType
-    {
-        return $this->types[$index];
-    }
-
     public function getFirstSegment(): string
     {
         return $this->segments[0];
@@ -55,12 +48,22 @@ final class Key extends Node
     {
         $result = [];
 
-        foreach ($this->segments as $i => $segment) {
-            $result[] = $this->types[$i] === KeyType::Quoted
-                ? '"' . $segment . '"'
+        foreach ($this->segments as $segment) {
+            $result[] = self::needsQuoting($segment)
+                ? '"' . \addcslashes($segment, "\"\\\n\r\t") . '"'
                 : $segment;
         }
 
         return \implode('.', $result);
+    }
+
+    /**
+     * Determines if a segment needs to be quoted.
+     *
+     * Bare keys can only contain: A-Za-z0-9_-
+     */
+    private static function needsQuoting(string $segment): bool
+    {
+        return $segment === '' or \preg_match('/^[A-Za-z0-9_-]+$/', $segment) !== 1;
     }
 }

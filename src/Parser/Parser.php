@@ -9,7 +9,6 @@ use Internal\Toml\Exception\SyntaxException;
 use Internal\Toml\Node\Document;
 use Internal\Toml\Node\Entry;
 use Internal\Toml\Node\Key;
-use Internal\Toml\Node\KeyType;
 use Internal\Toml\Node\Position;
 use Internal\Toml\Node\Table;
 use Internal\Toml\Node\TableArray;
@@ -172,7 +171,6 @@ final class Parser
     private function parseKey(): Key
     {
         $segments = [];
-        $types = [];
         $startToken = $this->current();
 
         do {
@@ -181,11 +179,9 @@ final class Parser
             if ($token->type === TokenType::String) {
                 $this->advance();
                 $segments[] = $token->literal;
-                $types[] = KeyType::Quoted;
             } elseif ($token->type === TokenType::BareKey) {
                 $this->advance();
                 $segments[] = $token->literal;
-                $types[] = KeyType::Bare;
             } else {
                 throw new SyntaxException("Expected key at line {$token->line}, column {$token->column}");
             }
@@ -199,7 +195,7 @@ final class Parser
 
         $position = new Position($startToken->line, $startToken->column, $startToken->position);
 
-        return new Key($segments, $types, $position);
+        return new Key($segments, $position);
     }
 
     private function parseValue(): Value
