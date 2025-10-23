@@ -112,6 +112,17 @@ final class Document extends Node implements MultiLineNode
         return $result;
     }
 
+    private function hasTablesOrTableArrays(): bool
+    {
+        foreach ($this->nodes as $node) {
+            if ($node instanceof Table or $node instanceof TableArray) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     /**
      * @param array<string, mixed> $result
      */
@@ -222,15 +233,5 @@ final class Document extends Node implements MultiLineNode
                 $ref = &$ref[$segment];
             }
         }
-    }
-
-    private function hasTablesOrTableArrays(): bool
-    {
-        foreach ($this->nodes as $node) {
-            if ($node instanceof Table or $node instanceof TableArray) {
-                return true;
-            }
-        }
-        return false;
     }
 }
