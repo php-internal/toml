@@ -12,7 +12,7 @@
 
 <br />
 
-TOML v1.0.0 parser and encoder for PHP 8.1+. Parse TOML files into PHP arrays or encode PHP data structures back to TOML format.
+[TOML v1.0.0](https://toml.io/en/v1.0.0) parser and encoder for PHP 8.1+. Parse TOML files into PHP arrays or encode PHP data structures back to TOML format.
 
 ## Installation
 
@@ -183,18 +183,4 @@ All TOML v1.0.0 features: strings (basic/literal/multiline), integers (decimal/h
 
 The library preserves original formatting when doing round-trips (hex numbers stay hex, comments are kept, etc).
 
-## Documentation
-
-- [TOML v1.0.0 Specification](https://toml.io/en/v1.0.0)
-
-## License
-
-BSD-3-Clause
-
----
-
-<div align="center">
-
 Built with [Claude Code](https://claude.com/claude-code)
-
-</div>
