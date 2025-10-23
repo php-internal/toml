@@ -54,7 +54,7 @@ final class Document extends Node implements MultiLineNode
     public function findTable(string $name): ?Table
     {
         foreach ($this->nodes as $node) {
-            if ($node instanceof Table and $node->name->toString() === $name) {
+            if ($node instanceof Table and $node->name->__toString() === $name) {
                 return $node;
             }
         }
@@ -65,12 +65,51 @@ final class Document extends Node implements MultiLineNode
     public function findEntry(string $key): ?Entry
     {
         foreach ($this->nodes as $node) {
-            if ($node instanceof Entry and $node->key?->toString() === $key) {
+            if ($node instanceof Entry and $node->key?->__toString() === $key) {
                 return $node;
             }
         }
 
         return null;
+    }
+
+    public function __toString(): string
+    {
+        $result = '';
+        $hasRootEntries = false;
+
+        // First, output all root-level entries (before any tables)
+        foreach ($this->nodes as $node) {
+            if ($node instanceof Entry) {
+                $entryStr = (string) $node;
+                if ($entryStr !== '') {
+                    $result .= $entryStr . "\n";
+                    $hasRootEntries = true;
+                }
+            } else {
+                // Stop at first table
+                break;
+            }
+        }
+
+        // Add blank line after root entries if there are tables
+        if ($hasRootEntries && $this->hasTablesOrTableArrays()) {
+            $result .= "\n";
+        }
+
+        // Output all tables and table arrays
+        $firstTable = true;
+        foreach ($this->nodes as $node) {
+            if ($node instanceof Table or $node instanceof TableArray) {
+                if (!$firstTable) {
+                    $result .= "\n";
+                }
+                $result .= (string) $node;
+                $firstTable = false;
+            }
+        }
+
+        return $result;
     }
 
     /**
@@ -183,5 +222,15 @@ final class Document extends Node implements MultiLineNode
                 $ref = &$ref[$segment];
             }
         }
+    }
+
+    private function hasTablesOrTableArrays(): bool
+    {
+        foreach ($this->nodes as $node) {
+            if ($node instanceof Table or $node instanceof TableArray) {
+                return true;
+            }
+        }
+        return false;
     }
 }

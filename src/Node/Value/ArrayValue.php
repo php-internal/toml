@@ -48,4 +48,18 @@ final class ArrayValue extends Value implements MultiLineNode
     {
         return \count($this->elements);
     }
+
+    public function __toString(): string
+    {
+        if ($this->elements === []) {
+            return '[]';
+        }
+
+        $parts = [];
+        foreach ($this->elements as $element) {
+            $parts[] = (string) $element;
+        }
+
+        return '[' . \implode(', ', $parts) . ']';
+    }
 }

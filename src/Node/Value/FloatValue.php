@@ -33,4 +33,9 @@ final class FloatValue extends Value
     {
         return \is_nan($this->value);
     }
+
+    public function __toString(): string
+    {
+        return $this->raw;
+    }
 }

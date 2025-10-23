@@ -21,19 +21,6 @@ final class Key extends Node
         parent::__construct($position);
     }
 
-    public function toString(): string
-    {
-        $result = [];
-
-        foreach ($this->segments as $i => $segment) {
-            $result[] = $this->types[$i] === KeyType::Quoted
-                ? '"' . $segment . '"'
-                : $segment;
-        }
-
-        return \implode('.', $result);
-    }
-
     public function isSimple(): bool
     {
         return \count($this->segments) === 1;
@@ -62,5 +49,18 @@ final class Key extends Node
     public function getLastSegment(): string
     {
         return $this->segments[\count($this->segments) - 1];
+    }
+
+    public function __toString(): string
+    {
+        $result = [];
+
+        foreach ($this->segments as $i => $segment) {
+            $result[] = $this->types[$i] === KeyType::Quoted
+                ? '"' . $segment . '"'
+                : $segment;
+        }
+
+        return \implode('.', $result);
     }
 }

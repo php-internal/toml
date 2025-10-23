@@ -32,11 +32,31 @@ final class Table extends Node implements MultiLineNode
     public function findEntry(string $key): ?Entry
     {
         foreach ($this->entries as $entry) {
-            if ($entry->key?->toString() === $key) {
+            if ($entry->key?->__toString() === $key) {
                 return $entry;
             }
         }
 
         return null;
+    }
+
+    public function __toString(): string
+    {
+        $result = '[' . (string) $this->name . ']';
+
+        if ($this->comment !== null) {
+            $result .= ' #' . $this->comment;
+        }
+
+        $result .= "\n";
+
+        foreach ($this->entries as $entry) {
+            $entryStr = (string) $entry;
+            if ($entryStr !== '') {
+                $result .= $entryStr . "\n";
+            }
+        }
+
+        return $result;
     }
 }

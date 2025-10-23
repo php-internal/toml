@@ -51,4 +51,18 @@ final class InlineTableValue extends Value implements MultiLineNode
     {
         return $this->pairs[$key] ?? null;
     }
+
+    public function __toString(): string
+    {
+        if ($this->pairs === []) {
+            return '{}';
+        }
+
+        $parts = [];
+        foreach ($this->pairs as $key => $value) {
+            $parts[] = $key . ' = ' . (string) $value;
+        }
+
+        return '{' . \implode(', ', $parts) . '}';
+    }
 }

@@ -99,7 +99,7 @@ final class Parser
 
         // Check for table redefinition (for non-array tables)
         if (!$isArray) {
-            $tableName = $key->toString();
+            $tableName = $key->__toString();
             if (isset($this->seenTables[$tableName])) {
                 throw new SyntaxException("Table '{$tableName}' is already defined at line {$key->position->line}, column {$key->position->column}");
             }
@@ -147,7 +147,7 @@ final class Parser
         $key = $this->parseKey();
 
         // Check for duplicate keys
-        $keyString = $key->toString();
+        $keyString = $key->__toString();
         if (isset($this->seenKeys[$keyString])) {
             throw new DuplicateKeyException("Duplicate key '{$keyString}' at line {$key->position->line}, column {$key->position->column}");
         }
@@ -336,7 +336,7 @@ final class Parser
             $this->consume(TokenType::Equals);
             $value = $this->parseValue();
 
-            $pairs[$key->toString()] = $value;
+            $pairs[$key->__toString()] = $value;
 
             if ($this->check(TokenType::Comma)) {
                 $this->advance();
