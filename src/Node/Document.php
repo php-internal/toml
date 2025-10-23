@@ -9,6 +9,8 @@ namespace Internal\Toml\Node;
  */
 final class Document extends Node implements MultiLineNode
 {
+    private ?ValueFinder $finder = null;
+
     /**
      * @param list<Entry|Table|TableArray> $nodes
      */
@@ -17,6 +19,39 @@ final class Document extends Node implements MultiLineNode
         Position $position,
     ) {
         parent::__construct($position);
+    }
+
+    /**
+     * Get value by dotted path.
+     *
+     * Supports:
+     * - Simple keys: 'name'
+     * - Dotted keys: 'database.host'
+     * - Nested tables: 'package.dependencies.php'
+     * - Array indices: 'products.0.name'
+     * - Quoted keys: '"key.with.dots".subkey'
+     *
+     * @param string $path Key path (can be dotted)
+     * @param mixed $default Default value if path not found
+     * @return mixed PHP value (scalar, array, or null)
+     *
+     * @throws \InvalidArgumentException If path is empty
+     */
+    public function get(string $path, mixed $default = null): mixed
+    {
+        $value = $this->finder()->get($path);
+
+        return $value ?? $default;
+    }
+
+    /**
+     * Check if path exists in document.
+     *
+     * @param string $path Key path
+     */
+    public function has(string $path): bool
+    {
+        return $this->finder()->exists($path);
     }
 
     /**
@@ -110,6 +145,14 @@ final class Document extends Node implements MultiLineNode
         }
 
         return $result;
+    }
+
+    /**
+     * Get the value finder for this document.
+     */
+    private function finder(): ValueFinder
+    {
+        return $this->finder ??= new ValueFinder($this);
     }
 
     private function hasTablesOrTableArrays(): bool
