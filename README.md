@@ -1,4 +1,16 @@
+<div align="center">
+
 # TOML for PHP
+
+</div>
+
+<div align="center">
+
+[![Support](https://img.shields.io/static/v1?style=flat-square&label=Support&message=%E2%9D%A4&logo=GitHub&color=%23fe0086)](https://patreon.com/roxblnfk)
+
+</div>
+
+<br />
 
 TOML v1.0.0 parser and encoder for PHP 8.1+. Parse TOML files into PHP arrays or encode PHP data structures back to TOML format.
 
@@ -7,6 +19,11 @@ TOML v1.0.0 parser and encoder for PHP 8.1+. Parse TOML files into PHP arrays or
 ```bash
 composer require internal/toml
 ```
+
+[![PHP](https://img.shields.io/packagist/php-v/internal/toml.svg?style=flat-square&logo=php)](https://packagist.org/packages/internal/toml)
+[![Latest Version on Packagist](https://img.shields.io/packagist/v/internal/toml.svg?style=flat-square&logo=packagist)](https://packagist.org/packages/internal/toml)
+[![License](https://img.shields.io/packagist/l/internal/toml.svg?style=flat-square)](LICENSE.md)
+[![Total Destroys](https://img.shields.io/packagist/dt/internal/toml.svg?style=flat-square)](https://packagist.org/packages/internal/toml/stats)
 
 ## Quick Start
 
@@ -173,3 +190,11 @@ The library preserves original formatting when doing round-trips (hex numbers st
 ## License
 
 BSD-3-Clause
+
+---
+
+<div align="center">
+
+Built with [Claude Code](https://claude.com/claude-code)
+
+</div>

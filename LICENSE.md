@@ -1,6 +1,6 @@
 # BSD 3-Clause
 
-Copyright (c) 2024, [copyright holder].
+Copyright (c) 2025, [copyright holder].
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
