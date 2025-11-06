@@ -40,6 +40,11 @@ final class TomlEncodeTest extends TestCase
             ['str' => 'text', 'int' => 42, 'float' => 3.14, 'bool' => true],
         ];
     }
+
+    public static function provideFixtureFiles(): \Generator
+    {
+        yield 'roadrunner config' => ['rr.toml'];
+    }
     // ============================================
     // Basic Encoding Tests
     // ============================================
@@ -344,5 +349,36 @@ final class TomlEncodeTest extends TestCase
         // Should contain actual newlines (multiline format)
         $lines = \explode("\n", $toml);
         self::assertGreaterThan(3, \count($lines), 'Should have multiple lines');
+    }
+
+    // ============================================
+    // Fixture-based Round-Trip Tests
+    // ============================================
+
+    #[DataProvider('provideFixtureFiles')]
+    public function testEncodeFixtureFileRoundTrip(string $filename): void
+    {
+        // Arrange
+        $fixturePath = __DIR__ . '/fixtures/' . $filename;
+        $tomlContent = \file_get_contents($fixturePath);
+        self::assertNotFalse($tomlContent, "Failed to read fixture file: {$filename}");
+
+        // Parse original TOML to array
+        $originalArray = Toml::parseToArray($tomlContent);
+
+        // Act
+        // Encode array back to TOML string
+        $encodedToml = (string) Toml::encode($originalArray);
+
+        // Parse the encoded TOML back to array
+        $reEncodedArray = Toml::parseToArray($encodedToml);
+
+        // Assert
+        // The re-encoded array should match the original parsed array
+        self::assertEquals(
+            $originalArray,
+            $reEncodedArray,
+            "Round-trip encoding/decoding changed the data structure for {$filename}"
+        );
     }
 }
