@@ -1,0 +1,34 @@
+[roadrunner]
+ref = "v2025.1.1"
+
+[log]
+level = "info"
+mode = "production"
+
+[github.token]
+token = "123adryen7y123"
+
+[github.plugins.temporal]
+ref = "v5.7.0"
+owner = "temporalio"
+repository = "roadrunner-temporal"
+
+[github.plugins.kv]
+ref = "v5.2.8"
+owner = "roadrunner-server"
+repository = "kv"
+
+[github.plugins.logger]
+ref = "v5.1.8"
+owner = "roadrunner-server"
+repository = "logger"
+
+[github.plugins.server]
+ref = "v5.2.9"
+owner = "roadrunner-server"
+repository = "server"
+
+[github.plugins.rpc]
+ref = "v5.1.8"
+owner = "roadrunner-server"
+repository = "rpc"
