@@ -26,8 +26,11 @@ final class ArrayToDocumentConverter
         $nodes = [];
         $position = new Position(1, 1, 0);
 
-        // Categorize data into root entries, tables, and table arrays
-        [$rootEntries, $tables, $tableArrays] = $this->categorizeData($data);
+        // Flatten the data structure to handle nested tables
+        $flatData = $this->flattenData($data);
+
+        // Categorize flattened data into root entries, tables, and table arrays
+        [$rootEntries, $tables, $tableArrays] = $this->categorizeData($flatData);
 
         // Root key-value pairs first
         foreach ($rootEntries as $key => $value) {
@@ -47,6 +50,65 @@ final class ArrayToDocumentConverter
         }
 
         return new Document($nodes, $position);
+    }
+
+    /**
+     * Flattens nested array structure into dotted keys.
+     *
+     * Example:
+     * ['github' => ['token' => ['key' => 'val']]]
+     * becomes:
+     * ['github.token' => ['key' => 'val']]
+     *
+     * @param array<string, mixed> $data
+     * @param string $prefix
+     * @return array<string, mixed>
+     */
+    private function flattenData(array $data, string $prefix = ''): array
+    {
+        $result = [];
+
+        foreach ($data as $key => $value) {
+            if (!\is_string($key)) {
+                throw new \InvalidArgumentException('TOML keys must be strings, got: ' . \get_debug_type($key));
+            }
+
+            $fullKey = $prefix === '' ? $key : $prefix . '.' . $key;
+
+            if (!\is_array($value)) {
+                // Scalar value
+                $result[$fullKey] = $value;
+            } elseif ($this->isTableArray($value)) {
+                // Table array - keep as is
+                $result[$fullKey] = $value;
+            } elseif ($this->isAssociativeArray($value)) {
+                // Check if this table has only scalar/array values (leaf table)
+                // or if it has nested tables
+                $hasNestedTables = false;
+                foreach ($value as $subValue) {
+                    if (\is_array($subValue) && $this->isAssociativeArray($subValue) && !$this->isTableArray($subValue)) {
+                        $hasNestedTables = true;
+                        break;
+                    }
+                }
+
+                if ($hasNestedTables) {
+                    // Recursively flatten nested tables
+                    $flattened = $this->flattenData($value, $fullKey);
+                    foreach ($flattened as $flatKey => $flatValue) {
+                        $result[$flatKey] = $flatValue;
+                    }
+                } else {
+                    // Leaf table - keep as is
+                    $result[$fullKey] = $value;
+                }
+            } else {
+                // Simple array (list of scalars)
+                $result[$fullKey] = $value;
+            }
+        }
+
+        return $result;
     }
 
     /**
@@ -102,17 +164,13 @@ final class ArrayToDocumentConverter
         $entries = [];
         $position = new Position(0, 0, 0);
 
-        // Categorize table data
-        [$rootEntries, $nestedTables, $nestedTableArrays] = $this->categorizeData($data);
-
-        // Add root entries
-        foreach ($rootEntries as $key => $value) {
+        // Add all entries (data is already flattened, so no nested tables here)
+        foreach ($data as $key => $value) {
+            if (!\is_string($key)) {
+                throw new \InvalidArgumentException('TOML keys must be strings, got: ' . \get_debug_type($key));
+            }
             $entries[] = $this->createEntry($key, $value);
         }
-
-        // Nested tables and table arrays will be handled at document level
-        // For now, we only handle simple table entries
-        // TODO: Handle nested structures properly
 
         return new Table($keyNode, $entries, null, $position);
     }
