@@ -45,6 +45,141 @@ final class ValueFactoryTest extends TestCase
         yield 'object without DateTimeInterface' => [new \stdClass(), 'stdClass'];
         yield 'null' => [null, 'null'];
     }
+
+    public static function provideJsonSerializableData(): \Generator
+    {
+        yield 'string value' => [
+            new class implements \JsonSerializable {
+                public function jsonSerialize(): string
+                {
+                    return 'serialized string';
+                }
+            },
+            StringValue::class,
+            'serialized string',
+        ];
+
+        yield 'integer value' => [
+            new class implements \JsonSerializable {
+                public function jsonSerialize(): int
+                {
+                    return 42;
+                }
+            },
+            IntegerValue::class,
+            42,
+        ];
+
+        yield 'float value' => [
+            new class implements \JsonSerializable {
+                public function jsonSerialize(): float
+                {
+                    return 3.14;
+                }
+            },
+            FloatValue::class,
+            3.14,
+        ];
+
+        yield 'boolean true' => [
+            new class implements \JsonSerializable {
+                public function jsonSerialize(): bool
+                {
+                    return true;
+                }
+            },
+            BooleanValue::class,
+            true,
+        ];
+
+        yield 'boolean false' => [
+            new class implements \JsonSerializable {
+                public function jsonSerialize(): bool
+                {
+                    return false;
+                }
+            },
+            BooleanValue::class,
+            false,
+        ];
+
+        yield 'indexed array' => [
+            new class implements \JsonSerializable {
+                public function jsonSerialize(): array
+                {
+                    return [1, 2, 3];
+                }
+            },
+            ArrayValue::class,
+            [1, 2, 3],
+        ];
+
+        yield 'associative array' => [
+            new class implements \JsonSerializable {
+                public function jsonSerialize(): array
+                {
+                    return ['name' => 'John', 'age' => 30];
+                }
+            },
+            InlineTableValue::class,
+            ['name' => 'John', 'age' => 30],
+        ];
+
+        yield 'empty array' => [
+            new class implements \JsonSerializable {
+                public function jsonSerialize(): array
+                {
+                    return [];
+                }
+            },
+            ArrayValue::class,
+            [],
+        ];
+
+        yield 'datetime value' => [
+            new class implements \JsonSerializable {
+                public function jsonSerialize(): \DateTimeImmutable
+                {
+                    return new \DateTimeImmutable('2024-01-15T10:30:00Z');
+                }
+            },
+            DateTimeValue::class,
+            '2024-01-15T10:30:00Z',
+        ];
+    }
+
+    public static function provideJsonSerializableInvalidData(): \Generator
+    {
+        yield 'null value' => [
+            new class implements \JsonSerializable {
+                public function jsonSerialize(): mixed
+                {
+                    return null;
+                }
+            },
+            'null',
+        ];
+
+        yield 'stdClass object' => [
+            new class implements \JsonSerializable {
+                public function jsonSerialize(): object
+                {
+                    return new \stdClass();
+                }
+            },
+            'stdClass',
+        ];
+
+        yield 'resource' => [
+            new class implements \JsonSerializable {
+                public function jsonSerialize(): mixed
+                {
+                    return \fopen('php://memory', 'r');
+                }
+            },
+            'resource (stream)',
+        ];
+    }
     // ============================================
     // String Value Tests
     // ============================================
@@ -331,5 +466,112 @@ final class ValueFactoryTest extends TestCase
         self::assertInstanceOf(InlineTableValue::class, $result);
         self::assertArrayHasKey('outer', $result->pairs);
         self::assertInstanceOf(InlineTableValue::class, $result->pairs['outer']);
+    }
+
+    // ============================================
+    // JsonSerializable Tests
+    // ============================================
+
+    #[DataProvider('provideJsonSerializableData')]
+    public function testCreateJsonSerializableReturnsCorrectValueType(
+        \JsonSerializable $jsonSerializable,
+        string $expectedClass,
+        mixed $expectedValue,
+    ): void {
+        // Act
+        $result = ValueFactory::create($jsonSerializable);
+
+        // Assert
+        self::assertInstanceOf($expectedClass, $result);
+
+        // Verify the actual value based on type
+        match ($expectedClass) {
+            StringValue::class => self::assertSame($expectedValue, $result->value),
+            IntegerValue::class => self::assertSame($expectedValue, $result->value),
+            FloatValue::class => self::assertSame($expectedValue, $result->value),
+            BooleanValue::class => self::assertSame($expectedValue, $result->value),
+            DateTimeValue::class => self::assertSame($expectedValue, $result->raw),
+            ArrayValue::class => self::assertCount(\count($expectedValue), $result->elements),
+            InlineTableValue::class => self::assertCount(\count($expectedValue), $result->pairs),
+            default => self::fail("Unexpected value class: $expectedClass"),
+        };
+    }
+
+    #[DataProvider('provideJsonSerializableInvalidData')]
+    public function testCreateJsonSerializableThrowsExceptionForInvalidData(
+        \JsonSerializable $jsonSerializable,
+        string $expectedType,
+    ): void {
+        // Assert (before Act for exceptions)
+        $this->expectException(InvalidTypeException::class);
+        $this->expectExceptionMessage("Unsupported value type: $expectedType");
+
+        // Act
+        ValueFactory::create($jsonSerializable);
+    }
+
+    public function testCreateJsonSerializableWithNestedJsonSerializable(): void
+    {
+        // Arrange
+        $innerJsonSerializable = new class implements \JsonSerializable {
+            public function jsonSerialize(): string
+            {
+                return 'inner value';
+            }
+        };
+
+        $outerJsonSerializable = new class($innerJsonSerializable) implements \JsonSerializable {
+            public function __construct(private readonly \JsonSerializable $inner)
+            {
+            }
+
+            public function jsonSerialize(): array
+            {
+                return ['nested' => $this->inner];
+            }
+        };
+
+        // Act
+        $result = ValueFactory::create($outerJsonSerializable);
+
+        // Assert
+        self::assertInstanceOf(InlineTableValue::class, $result);
+        self::assertArrayHasKey('nested', $result->pairs);
+        self::assertInstanceOf(StringValue::class, $result->pairs['nested']);
+        self::assertSame('inner value', $result->pairs['nested']->value);
+    }
+
+    public function testCreateJsonSerializableWithComplexStructure(): void
+    {
+        // Arrange
+        $jsonSerializable = new class implements \JsonSerializable {
+            public function jsonSerialize(): array
+            {
+                return [
+                    'title' => 'Test',
+                    'count' => 10,
+                    'enabled' => true,
+                    'ratio' => 0.5,
+                    'tags' => ['php', 'toml'],
+                    'metadata' => [
+                        'created' => '2024-01-15',
+                        'version' => 1,
+                    ],
+                ];
+            }
+        };
+
+        // Act
+        $result = ValueFactory::create($jsonSerializable);
+
+        // Assert
+        self::assertInstanceOf(InlineTableValue::class, $result);
+        self::assertCount(6, $result->pairs);
+        self::assertInstanceOf(StringValue::class, $result->pairs['title']);
+        self::assertInstanceOf(IntegerValue::class, $result->pairs['count']);
+        self::assertInstanceOf(BooleanValue::class, $result->pairs['enabled']);
+        self::assertInstanceOf(FloatValue::class, $result->pairs['ratio']);
+        self::assertInstanceOf(ArrayValue::class, $result->pairs['tags']);
+        self::assertInstanceOf(InlineTableValue::class, $result->pairs['metadata']);
     }
 }

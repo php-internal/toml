@@ -34,6 +34,7 @@ final class ValueFactory
             \is_bool($value) => self::createBoolean($value),
             $value instanceof \DateTimeInterface => self::createDateTime($value),
             \is_array($value) => self::createArray($value),
+            $value instanceof \JsonSerializable => self::create($value->jsonSerialize()),
             default => throw new InvalidTypeException('Unsupported value type: ' . \get_debug_type($value)),
         };
     }
