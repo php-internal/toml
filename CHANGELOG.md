@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.3 (2025-11-17)
+
+**Full Changelog**: https://github.com/php-internal/toml/compare/1.0.2...1.0.3
+
 ## 1.0.2 (2025-11-06)
 
 ## What's Changed
