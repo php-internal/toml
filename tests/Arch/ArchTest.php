@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace Internal\Destroy\Tests\Arch;
+namespace Internal\Toml\Tests\Arch;
 
 use PHPUnit\Architecture\ArchitectureAsserts;
 use PHPUnit\Framework\TestCase;
