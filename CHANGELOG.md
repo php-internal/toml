@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0](https://github.com/php-internal/toml/compare/1.0.3...1.1.0) (2026-03-30)
+
+
+### Features
+
+* Support TOML 1.1 ([5d0db1b](https://github.com/php-internal/toml/commit/5d0db1b7928249110a185c53d7d503c17ff3b7ec))
+
 ## 1.0.3 (2025-11-17)
 
 **Full Changelog**: https://github.com/php-internal/toml/compare/1.0.2...1.0.3
