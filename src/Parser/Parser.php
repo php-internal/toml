@@ -94,8 +94,16 @@ final class Parser
         $key = $this->parseKey();
 
         // Check for table redefinition (for non-array tables)
-        if (!$isArray) {
-            $tableName = $key->__toString();
+        $tableName = $key->__toString();
+        if ($isArray) {
+            // New array-of-tables element: reset subtable tracking for this prefix
+            $prefix = $tableName . '.';
+            foreach (\array_keys($this->seenTables) as $seen) {
+                if (\str_starts_with($seen, $prefix)) {
+                    unset($this->seenTables[$seen]);
+                }
+            }
+        } else {
             if (isset($this->seenTables[$tableName])) {
                 throw new SyntaxException("Table '{$tableName}' is already defined at line {$key->position->line}, column {$key->position->column}");
             }
@@ -317,9 +325,9 @@ final class Parser
 
         // Check if it has timezone offset
         $hasTimezone = \str_contains($token->value, 'Z')
-            or \str_contains($token->value, 'z')
-            or \preg_match('/[+-]\d{2}:\d{2}$/', $token->value) === 1
-            or \preg_match('/[+-]\d{4}$/', $token->value) === 1;
+            || \str_contains($token->value, 'z')
+            || \preg_match('/[+-]\d{2}:\d{2}$/', $token->value) === 1
+            || \preg_match('/[+-]\d{4}$/', $token->value) === 1;
 
         $type = $hasTimezone ? DateTimeType::OffsetDatetime : DateTimeType::LocalDatetime;
         $datetime = $token->literal instanceof \DateTimeImmutable ? $token->literal : new \DateTimeImmutable($token->value);
@@ -371,7 +379,7 @@ final class Parser
             $this->consume(TokenType::Equals);
             $value = $this->parseValue();
 
-            $pairs[$key->__toString()] = $value;
+            $pairs[\implode('.', $key->segments)] = $value;
 
             $this->skipNewlinesAndCommentsDiscarding();
 
@@ -458,5 +466,4 @@ final class Parser
     {
         return $this->position >= \count($this->tokens) or $this->current()->type === TokenType::Eof;
     }
-
 }

@@ -142,7 +142,7 @@ function valueToTagged(Value $value): mixed
         $value instanceof BooleanValue => ['type' => 'bool', 'value' => $value->value ? 'true' : 'false'],
         $value instanceof DateTimeValue => datetimeToTagged($value),
         $value instanceof LocalTimeValue => ['type' => 'time-local', 'value' => $value->value],
-        $value instanceof ArrayValue => \array_map(fn(Value $el): mixed => valueToTagged($el), $value->elements),
+        $value instanceof ArrayValue => \array_map(static fn(Value $el): mixed => valueToTagged($el), $value->elements),
         $value instanceof InlineTableValue => inlineTableToTagged($value),
         default => throw new \RuntimeException('Unknown value type: ' . $value::class),
     };
@@ -159,8 +159,9 @@ function floatToTagged(FloatValue $value): array
     } elseif (\is_infinite($val)) {
         $str = '-inf';
     } else {
+        // Use full IEEE 754 precision (17 significant digits)
+        $str = \sprintf('%.17G', $val);
         // Ensure float representation always has a decimal point
-        $str = (string) $val;
         if (!\str_contains($str, '.') && !\str_contains($str, 'E') && !\str_contains($str, 'e')) {
             $str .= '.0';
         }
@@ -177,11 +178,7 @@ function datetimeToTagged(DateTimeValue $value): array
         DateTimeType::LocalDate => 'date-local',
     };
 
-    // Normalize raw: replace space separator with T
-    $raw = $value->raw;
-    $raw = \preg_replace('/^(\d{4}-\d{2}-\d{2})[ t]/', '$1T', $raw);
-
-    return ['type' => $type, 'value' => $raw];
+    return ['type' => $type, 'value' => $value->raw];
 }
 
 function inlineTableToTagged(InlineTableValue $value): \stdClass

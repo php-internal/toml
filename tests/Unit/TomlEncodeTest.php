@@ -378,7 +378,7 @@ final class TomlEncodeTest extends TestCase
         self::assertEquals(
             $originalArray,
             $reEncodedArray,
-            "Round-trip encoding/decoding changed the data structure for {$filename}"
+            "Round-trip encoding/decoding changed the data structure for {$filename}",
         );
     }
 }

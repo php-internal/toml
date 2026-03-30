@@ -61,7 +61,6 @@ final class ArrayToDocumentConverter
      * ['github.token' => ['key' => 'val']]
      *
      * @param array<string, mixed> $data
-     * @param string $prefix
      * @return array<string, mixed>
      */
     private function flattenData(array $data, string $prefix = ''): array

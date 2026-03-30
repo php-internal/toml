@@ -11,11 +11,15 @@ use Internal\Toml\Node\Position;
  */
 final class LocalTimeValue extends Value
 {
+    public readonly string $value;
+
     public function __construct(
-        public readonly string $value,    // "07:32:00.999999"
+        string $value,    // "07:32:00.999999"
         Position $position,
     ) {
         parent::__construct($position);
+        // Normalize: inject :00 seconds when omitted (HH:MM → HH:MM:00)
+        $this->value = \preg_match('/^\d{2}:\d{2}$/', $value) ? $value . ':00' : $value;
     }
 
     public function toPhpValue(): string

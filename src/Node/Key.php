@@ -19,6 +19,16 @@ final class Key extends Node
         parent::__construct($position);
     }
 
+    /**
+     * Quotes a key segment if it contains special characters.
+     */
+    public static function quoteIfNeeded(string $segment): string
+    {
+        return self::needsQuoting($segment)
+            ? '"' . \addcslashes($segment, "\"\\\n\r\t") . '"'
+            : $segment;
+    }
+
     public function isSimple(): bool
     {
         return \count($this->segments) === 1;

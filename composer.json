@@ -27,7 +27,7 @@
         "spiral/code-style": "^2.3.0",
         "ta-tikoma/phpunit-architecture-test": "^0.8.5",
         "vimeo/psalm": "^6.13",
-        "internal/dload": "^1.10"
+        "internal/dload": "^1.11"
     },
     "minimum-stability": "dev",
     "prefer-stable": true,

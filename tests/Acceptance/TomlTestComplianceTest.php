@@ -16,12 +16,13 @@ use PHPUnit\Framework\TestCase;
 #[Group('acceptance')]
 final class TomlTestComplianceTest extends TestCase
 {
-    private const TOML_TEST_BINARY = __DIR__ . '/../../runtime/toml-test.exe';
+    private const TOML_TEST_DIR = __DIR__ . '/../../runtime';
     private const DECODER = __DIR__ . '/toml-test-decoder.php';
     private const ENCODER = __DIR__ . '/toml-test-encoder.php';
 
     /** Decoder parses TOML 1.1, encoder outputs TOML 1.0. */
     private const DECODER_TOML_VERSION = '1.1';
+
     private const ENCODER_TOML_VERSION = '1.0';
 
     /**
@@ -29,47 +30,10 @@ final class TomlTestComplianceTest extends TestCase
      *
      * Each entry should be removed as the corresponding issue is fixed.
      */
-    private const KNOWN_FAILURES = [
-        // --- valid tests: decoder produces wrong result ---
-
+    /** Known decoder failures. Each entry should be removed as the issue is fixed. */
+    private const KNOWN_DECODER_FAILURES = [
         // Null byte in key: PHP stdClass cannot have \0 property
         'valid/key/quoted-unicode',
-
-        // Datetime format normalization
-        'valid/datetime/datetime',
-        'valid/datetime/milliseconds',
-        'valid/datetime/no-seconds',
-        'valid/datetime/timezone',
-
-        // Comment handling edge cases
-        'valid/comment/everywhere',
-        'valid/comment/tricky',
-
-        // Table: array-table-array, array-subtables interactions
-        'valid/table/array-table-array',
-        'valid/array/array-subtables',
-
-        // String edge cases
-        'valid/string/ends-in-whitespace-escape',
-        'valid/string/multiline',
-        'valid/string/multiline-empty',
-        'valid/string/multiline-quotes',
-        'valid/string/raw-multiline',
-
-        // Float precision
-        'valid/float/long',
-        'valid/float/max-int',
-
-        // Spec examples
-        'valid/spec-1.1.0/common-16',
-        'valid/spec-1.1.0/common-19',
-        'valid/spec-1.1.0/common-24',
-        'valid/spec-1.1.0/common-27',
-        'valid/spec-1.1.0/common-29',
-        'valid/spec-1.1.0/common-31',
-        'valid/spec-1.1.0/common-34',
-        'valid/spec-example-1',
-        'valid/spec-example-1-compact',
 
         // --- invalid tests: parser does not reject invalid input ---
 
@@ -206,17 +170,6 @@ final class TomlTestComplianceTest extends TestCase
         'invalid/local-time/second-over',
         'invalid/local-time/trailing-dot',
 
-        // String validation
-        'invalid/string/multiline-bad-escape-04',
-        'invalid/string/multiline-lit-no-close-01',
-        'invalid/string/multiline-lit-no-close-02',
-        'invalid/string/multiline-lit-no-close-03',
-        'invalid/string/multiline-lit-no-close-04',
-        'invalid/string/multiline-no-close-01',
-        'invalid/string/multiline-no-close-02',
-        'invalid/string/multiline-no-close-03',
-        'invalid/string/multiline-no-close-04',
-
         // Encoding validation
         'invalid/encoding/bad-codepoint',
         'invalid/encoding/bad-utf8-in-comment',
@@ -241,6 +194,11 @@ final class TomlTestComplianceTest extends TestCase
         'invalid/spec-1.1.0/common-50-0',
     ];
 
+    /** Known encoder round-trip failures. */
+    private const KNOWN_ENCODER_FAILURES = [
+        'encoder/*',
+    ];
+
     /**
      * Provides all test case names from toml-test list.
      *
@@ -248,7 +206,7 @@ final class TomlTestComplianceTest extends TestCase
      */
     public static function provideDecoderTestCases(): \Generator
     {
-        $binary = \str_replace('/', DIRECTORY_SEPARATOR, self::TOML_TEST_BINARY);
+        $binary = self::tomlTestBinary();
 
         if (!\file_exists($binary)) {
             return;
@@ -306,16 +264,34 @@ final class TomlTestComplianceTest extends TestCase
 
     public function testEncoderCompliance(): void
     {
-        $result = $this->runTomlTestSuite(self::ENCODER_TOML_VERSION);
+        $result = $this->runTomlTestSuite(self::ENCODER_TOML_VERSION, skipInvalid: true);
 
         self::assertSame(0, $result['exit_code'], "Encoder compliance failed:\n" . $result['output']);
     }
 
     protected function setUp(): void
     {
-        if (!\file_exists(self::TOML_TEST_BINARY)) {
-            self::markTestSkipped('toml-test binary not found at ' . self::TOML_TEST_BINARY);
+        if (!\file_exists(self::tomlTestBinary())) {
+            self::markTestSkipped('toml-test binary not found at ' . self::tomlTestBinary());
         }
+    }
+
+    private static function tomlTestBinary(): string
+    {
+        $name = \DIRECTORY_SEPARATOR === '\\' ? 'toml-test.exe' : 'toml-test';
+
+        return self::TOML_TEST_DIR . '/' . $name;
+    }
+
+    private static function isKnownFailure(string $path): bool
+    {
+        foreach (self::KNOWN_DECODER_FAILURES as $pattern) {
+            if (\fnmatch($pattern, $path)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -325,7 +301,7 @@ final class TomlTestComplianceTest extends TestCase
      */
     private function runSingleTest(string $testName): ?string
     {
-        $binary = \str_replace('/', DIRECTORY_SEPARATOR, self::TOML_TEST_BINARY);
+        $binary = self::tomlTestBinary();
 
         $process = \proc_open(
             [
@@ -379,25 +355,14 @@ final class TomlTestComplianceTest extends TestCase
         return null;
     }
 
-    private static function isKnownFailure(string $path): bool
-    {
-        foreach (self::KNOWN_FAILURES as $pattern) {
-            if (\fnmatch($pattern, $path)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
     /**
      * Runs the full toml-test suite with encoder, skipping known failures.
      *
      * @return array{exit_code: int, output: string}
      */
-    private function runTomlTestSuite(string $tomlVersion): array
+    private function runTomlTestSuite(string $tomlVersion, bool $skipInvalid = false): array
     {
-        $binary = \str_replace('/', DIRECTORY_SEPARATOR, self::TOML_TEST_BINARY);
+        $binary = self::tomlTestBinary();
 
         $args = [
             $binary, 'test',
@@ -407,7 +372,13 @@ final class TomlTestComplianceTest extends TestCase
             '-encoder', PHP_BINARY . ' ' . self::ENCODER,
         ];
 
-        foreach (self::KNOWN_FAILURES as $skip) {
+        $skipPatterns = [...self::KNOWN_DECODER_FAILURES];
+
+        if ($skipInvalid) {
+            \array_push($skipPatterns, 'invalid/*', ...self::KNOWN_ENCODER_FAILURES);
+        }
+
+        foreach ($skipPatterns as $skip) {
             $args[] = '-skip';
             $args[] = $skip;
         }

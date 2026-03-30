@@ -415,6 +415,36 @@ TOML;
         self::assertSame('1979-05-27T07:32:00Z', $value->raw);
     }
 
+    public function testParseOffsetDateTimeWithNumericOffset(): void
+    {
+        // Arrange
+        $toml = 'dt = 1979-05-27T07:32:00+05:30';
+
+        // Act
+        $result = Toml::parse($toml);
+
+        // Assert
+        $entry = $result->nodes[0];
+        $value = $entry->value;
+        self::assertInstanceOf(DateTimeValue::class, $value);
+        self::assertSame(DateTimeType::OffsetDatetime, $value->type);
+    }
+
+    public function testParseOffsetDateTimeWithNegativeOffset(): void
+    {
+        // Arrange
+        $toml = 'dt = 1987-07-05T17:45:56-05:00';
+
+        // Act
+        $result = Toml::parse($toml);
+
+        // Assert
+        $entry = $result->nodes[0];
+        $value = $entry->value;
+        self::assertInstanceOf(DateTimeValue::class, $value);
+        self::assertSame(DateTimeType::OffsetDatetime, $value->type);
+    }
+
     public function testParseLocalDateTimeCreatesDateTimeValueWithCorrectType(): void
     {
         // Arrange

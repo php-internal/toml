@@ -130,7 +130,7 @@ final class TomlParseToArrayTest extends TestCase
         ];
         yield 'local time without seconds' => [
             'dt = 07:32',
-            ['dt' => '07:32'],
+            ['dt' => '07:32:00'],
         ];
         yield 'offset date-time without seconds' => [
             'dt = 1979-05-27T07:32Z',
@@ -283,6 +283,31 @@ TOML;
         self::assertSame(['key' => 'value'], $result);
     }
 
+    public function testCommentAfterTableHeaderNoSpace(): void
+    {
+        $toml = "[[aot]]# Comment\nk = 1\n[[aot]]# Comment\nk = 2";
+        $result = Toml::parseToArray($toml);
+
+        self::assertSame(['aot' => [['k' => 1], ['k' => 2]]], $result);
+    }
+
+    public function testCommentAfterValueNoSpace(): void
+    {
+        $toml = "k = 99# Comment";
+        $result = Toml::parseToArray($toml);
+
+        self::assertSame(['k' => 99], $result);
+    }
+
+    public function testLocalDateWithComment(): void
+    {
+        $toml = "d = 1979-05-27 # Comment";
+        $result = Toml::parseToArray($toml);
+
+        self::assertInstanceOf(\DateTimeImmutable::class, $result['d']);
+        self::assertSame('1979-05-27', $result['d']->format('Y-m-d'));
+    }
+
     // ============================================
     // String Types Tests
     // ============================================
@@ -339,6 +364,78 @@ TOML;
 
         // Assert
         self::assertSame(['str' => "line one\\n\nline two\\t\nline three"], $result);
+    }
+
+    public function testMultilineBasicStringWhitespaceLineEndingEscape(): void
+    {
+        // Arrange — backslash followed by spaces then newline trims all whitespace
+        $toml = "str = \"\"\"\\\n  hello\"\"\"";
+
+        // Act
+        $result = Toml::parseToArray($toml);
+
+        // Assert
+        self::assertSame(['str' => 'hello'], $result);
+    }
+
+    public function testMultilineBasicStringBackslashSpacesNewline(): void
+    {
+        // Arrange — backslash + trailing spaces + newline = line continuation
+        $toml = "str = \"\"\"abc\\   \nhello\"\"\"";
+
+        // Act
+        $result = Toml::parseToArray($toml);
+
+        // Assert
+        self::assertSame(['str' => 'abchello'], $result);
+    }
+
+    public function testMultilineBasicStringFourQuotes(): void
+    {
+        // Arrange — four consecutive double quotes: """" → """ + one extra "
+        $toml = 'str = """"one quote""""';
+
+        // Act
+        $result = Toml::parseToArray($toml);
+
+        // Assert
+        self::assertSame(['str' => '"one quote"'], $result);
+    }
+
+    public function testMultilineBasicStringFiveQuotes(): void
+    {
+        // Arrange — five consecutive double quotes: """"" → """ + two extra ""
+        $toml = 'str = """""two quotes"""""';
+
+        // Act
+        $result = Toml::parseToArray($toml);
+
+        // Assert
+        self::assertSame(['str' => '""two quotes""'], $result);
+    }
+
+    public function testMultilineLiteralStringFourQuotes(): void
+    {
+        // Arrange
+        $toml = "str = ''''one quote''''";
+
+        // Act
+        $result = Toml::parseToArray($toml);
+
+        // Assert
+        self::assertSame(['str' => "'one quote'"], $result);
+    }
+
+    public function testMultilineLiteralStringEmpty(): void
+    {
+        // Arrange — empty multiline basic string
+        $toml = 'str = """"""';
+
+        // Act
+        $result = Toml::parseToArray($toml);
+
+        // Assert
+        self::assertSame(['str' => ''], $result);
     }
 
     // ============================================
@@ -536,6 +633,31 @@ TOML;
                         ['name' => 'granny smith'],
                     ],
                 ],
+            ],
+        ], $result);
+    }
+
+    public function testDecodeArrayOfTablesWithSubtables(): void
+    {
+        // Arrange — subtable should be scoped to each array-of-tables element
+        $toml = <<<'TOML'
+[[arr]]
+[arr.subtab]
+val = 1
+
+[[arr]]
+[arr.subtab]
+val = 2
+TOML;
+
+        // Act
+        $result = Toml::parseToArray($toml);
+
+        // Assert
+        self::assertSame([
+            'arr' => [
+                ['subtab' => ['val' => 1]],
+                ['subtab' => ['val' => 2]],
             ],
         ], $result);
     }

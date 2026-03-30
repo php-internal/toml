@@ -252,12 +252,33 @@ final class Lexer
             $this->column = 1;
         }
 
+        $closed = false;
         while ($this->current() !== '') {
-            // Check for closing triple quotes
+            // Check for closing triple quotes (with up to 2 extra quotes as content)
             if ($this->current() === $quote and $this->peek() === $quote and $this->peek(2) === $quote) {
+                // Count consecutive quotes
+                $quoteCount = 0;
+                $pos = $this->position;
+                while ($pos < $this->length and $this->input[$pos] === $quote) {
+                    $quoteCount++;
+                    $pos++;
+                }
+
+                if ($quoteCount >= 6) {
+                    throw new SyntaxException("Too many consecutive quotes at line {$this->line}, column {$this->column}");
+                }
+
+                // Extra quotes (1-2) before the closing """ are part of the content
+                $extraQuotes = $quoteCount - 3;
+                for ($i = 0; $i < $extraQuotes; $i++) {
+                    $value .= $this->advance();
+                }
+
+                // Consume closing """
                 $this->advance();
                 $this->advance();
                 $this->advance();
+                $closed = true;
                 break;
             }
 
@@ -272,7 +293,8 @@ final class Lexer
                 $this->column = 1;
             } elseif ($isBasic and $this->current() === '\\') {
                 // Line ending backslash in multiline basic strings
-                if ($this->peek() === "\n" or $this->peek() === "\r") {
+                // Backslash can be followed by optional whitespace then newline
+                if ($this->isLineEndingBackslash()) {
                     $this->advance(); // Skip backslash
                     $this->scanLineEndingBackslash();
                     continue;
@@ -281,6 +303,10 @@ final class Lexer
             } else {
                 $value .= $this->advance();
             }
+        }
+
+        if (!$closed) {
+            throw new SyntaxException("Unterminated multiline string starting at line {$startLine}, column {$startColumn}");
         }
 
         return new Token(
@@ -347,8 +373,33 @@ final class Lexer
         return \mb_chr($codepoint, 'UTF-8');
     }
 
+    /**
+     * Checks if the current backslash starts a line-ending escape.
+     * A line-ending backslash may be followed by optional whitespace before the newline.
+     */
+    private function isLineEndingBackslash(): bool
+    {
+        $offset = 1; // Start after the backslash
+        while (true) {
+            $ch = $this->peek($offset);
+            if ($ch === "\n" or $ch === "\r") {
+                return true;
+            }
+            if ($ch === ' ' or $ch === "\t") {
+                $offset++;
+                continue;
+            }
+            return false;
+        }
+    }
+
     private function scanLineEndingBackslash(): void
     {
+        // Skip optional whitespace before the newline
+        while ($this->current() === ' ' or $this->current() === "\t") {
+            $this->advance();
+        }
+
         // Skip newline
         if ($this->current() === "\r" and $this->peek() === "\n") {
             $this->advance();
@@ -491,7 +542,10 @@ final class Lexer
         }
 
         // Local date without time
-        if ($this->current() !== 'T' and $this->current() !== ' ' and $this->current() !== 't') {
+        // Space is a datetime separator only if followed by a digit (start of time)
+        $isTimeSeparator = ($this->current() === 'T' or $this->current() === 't')
+            || ($this->current() === ' ' and \ctype_digit($this->peek()));
+        if (!$isTimeSeparator) {
             $value = \substr($this->input, $start, $this->position - $start);
             $datetime = \DateTimeImmutable::createFromFormat('Y-m-d', $value, new \DateTimeZone('UTC'));
 

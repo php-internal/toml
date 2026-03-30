@@ -32,7 +32,7 @@ function taggedToPhp(mixed $value): mixed
 
     // Array of tagged values (TOML array)
     if (\array_is_list($value)) {
-        return \array_map(fn(mixed $item): mixed => taggedToPhp($item), $value);
+        return \array_map(static fn(mixed $item): mixed => taggedToPhp($item), $value);
     }
 
     // Table: recursively convert
