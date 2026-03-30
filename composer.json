@@ -26,7 +26,8 @@
         "phpunit/phpunit": "^10.5",
         "spiral/code-style": "^2.3.0",
         "ta-tikoma/phpunit-architecture-test": "^0.8.5",
-        "vimeo/psalm": "^6.13"
+        "vimeo/psalm": "^6.13",
+        "internal/dload": "^1.10"
     },
     "minimum-stability": "dev",
     "prefer-stable": true,
@@ -41,6 +42,9 @@
         }
     },
     "scripts": {
+        "post-update-cmd": [
+            "dload get --no-interaction"
+        ],
         "cs:diff": "php-cs-fixer fix --dry-run -v --diff",
         "cs:fix": "php-cs-fixer fix -v",
         "infect": [

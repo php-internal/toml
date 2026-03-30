@@ -1,6 +1,6 @@
 ---
 
-name: 🧪 Unit testing
+name: 🧪
 
 on:  # yamllint disable-line rule:truthy
   pull_request:
@@ -16,7 +16,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     concurrency:
       cancel-in-progress: true
-      group: code-coverage-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ matrix.php-version }}-${{ matrix.dependencies }}
+      group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ matrix.php-version }}-${{ matrix.dependencies }}
     strategy:
       fail-fast: true
       matrix:
@@ -36,6 +36,11 @@ jobs:
           php-version: ${{ matrix.php-version }}
           ini-values: error_reporting=E_ALL
           coverage: xdebug
+
+      - name: Configure environment
+        run: |
+          export COMPOSER_ROOT_VERSION=$(/usr/bin/jq --null-input --raw-output 'first(inputs["."])' resources/version.json)
+          echo COMPOSER_ROOT_VERSION=$COMPOSER_ROOT_VERSION >> $GITHUB_ENV
 
       - name: 🛠️ Setup problem matchers
         run: |
@@ -65,10 +70,13 @@ jobs:
     runs-on: ${{ matrix.os }}
     concurrency:
       cancel-in-progress: true
-      group: testing-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ matrix.php-version }}-${{ matrix.dependencies }}
+      group: ${{ matrix.type }}-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}-${{ matrix.php-version }}-${{ matrix.dependencies }}
     strategy:
       fail-fast: false
       matrix:
+        type:
+          - unit
+          - acc
         os:
           - ubuntu-latest
         php-version:
@@ -76,10 +84,16 @@ jobs:
           - '8.2'
           - '8.3'
           - '8.4'
+          - '8.5'
         dependencies:
           - lowest
           - locked
           - highest
+        include:
+          - php-version: "8.5"
+            os: ubuntu-latest
+            type: "arch"
+            dependencies: "locked"
     steps:
       - name: 📦 Check out the codebase
         uses: actions/checkout@v5
@@ -89,6 +103,11 @@ jobs:
         with:
           php-version: ${{ matrix.php-version }}
           ini-values: error_reporting=E_ALL
+
+      - name: Configure environment
+        run: |
+          export COMPOSER_ROOT_VERSION=$(/usr/bin/jq --null-input --raw-output 'first(inputs["."])' resources/version.json)
+          echo COMPOSER_ROOT_VERSION=$COMPOSER_ROOT_VERSION >> $GITHUB_ENV
 
       - name: 🛠️ Setup problem matchers
         run: |
@@ -104,4 +123,4 @@ jobs:
           dependency-versions: ${{ matrix.dependencies }}
 
       - name: 🧪 Run tests
-        run: composer test
+        run: composer test:${{ matrix.type }}

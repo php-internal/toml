@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<dload xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+       xsi:noNamespaceSchemaLocation="vendor/internal/dload/dload.xsd"
+>
+    <actions>
+        <download software="toml-test" version="^2.1" extract-path="runtime"/>
+    </actions>
+    <registry>
+        <software name="TOML Test" alias="toml-test">
+            <repository uri="toml-lang/toml-test" asset-pattern="/^toml-test-.*/" type="github" />
+            <binary name="toml-test" pattern="/^toml-test-.*/" version-command="version"/>
+        </software>
+    </registry>
+</dload>
