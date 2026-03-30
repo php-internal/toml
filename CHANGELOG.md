@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.1](https://github.com/php-internal/toml/compare/1.1.0...1.1.1) (2026-03-30)
+
+
+### Bug Fixes
+
+* Allow same key names in different table scopes ([#5](https://github.com/php-internal/toml/issues/5)) ([32e0a52](https://github.com/php-internal/toml/commit/32e0a52b5cf908a470ca5b2d4916dd9cec1f7680))
+
 ## [1.1.0](https://github.com/php-internal/toml/compare/1.0.3...1.1.0) (2026-03-30)
 
 
