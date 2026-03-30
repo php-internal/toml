@@ -32,71 +32,27 @@ final class TomlTestComplianceTest extends TestCase
     private const KNOWN_FAILURES = [
         // --- valid tests: decoder produces wrong result ---
 
-        // Numeric/special bare keys: lexer treats digits, nan, inf as value tokens
-        'valid/key/alphanum',
-        'valid/key/escapes',
-        'valid/key/like-date',
-        'valid/key/numeric-01',
-        'valid/key/numeric-02',
-        'valid/key/numeric-03',
-        'valid/key/numeric-04',
-        'valid/key/numeric-05',
-        'valid/key/numeric-06',
-        'valid/key/numeric-07',
-        'valid/key/numeric-08',
-        'valid/key/special-word',
-        'valid/key/start',
-        'valid/key/zero',
-        'valid/float/inf-and-nan',
-
-        // Empty document: PHP empty array JSON-encodes as [] not {}
-        'valid/empty-crlf',
-        'valid/empty-lf',
-        'valid/empty-nothing',
-        'valid/empty-space',
-        'valid/empty-tab',
-        'valid/comment/noeol',
-        'valid/comment/nonascii',
+        // Null byte in key: PHP stdClass cannot have \0 property
+        'valid/key/quoted-unicode',
 
         // Datetime format normalization
         'valid/datetime/datetime',
-        'valid/datetime/leap-year',
         'valid/datetime/milliseconds',
         'valid/datetime/no-seconds',
         'valid/datetime/timezone',
 
         // Comment handling edge cases
-        'valid/comment/after-literal-no-ws',
         'valid/comment/everywhere',
         'valid/comment/tricky',
 
-        // Table: implicit creation, super-tables, dotted key interactions
-        'valid/table/array-empty',
+        // Table: array-table-array, array-subtables interactions
         'valid/table/array-table-array',
-        'valid/table/empty',
-        'valid/table/keyword',
-        'valid/table/keyword-with-values',
-        'valid/table/names',
-        'valid/table/names-with-values',
-        'valid/table/no-eol',
-        'valid/table/sub-empty',
-        'valid/table/whitespace',
-        'valid/table/without-super',
         'valid/array/array-subtables',
-        'valid/array/nested-inline-table',
-        'valid/array/open-parent-table',
-
-        // Inline table edge cases
-        'valid/inline-table/empty',
-        'valid/inline-table/nest',
-        'valid/inline-table/newline',
-        'valid/inline-table/newline-comment',
 
         // String edge cases
         'valid/string/ends-in-whitespace-escape',
         'valid/string/multiline',
         'valid/string/multiline-empty',
-        'valid/string/multiline-escaped-crlf',
         'valid/string/multiline-quotes',
         'valid/string/raw-multiline',
 
@@ -105,22 +61,13 @@ final class TomlTestComplianceTest extends TestCase
         'valid/float/max-int',
 
         // Spec examples
-        'valid/spec-1.1.0/common-11',
         'valid/spec-1.1.0/common-16',
         'valid/spec-1.1.0/common-19',
         'valid/spec-1.1.0/common-24',
         'valid/spec-1.1.0/common-27',
         'valid/spec-1.1.0/common-29',
-        'valid/spec-1.1.0/common-3',
         'valid/spec-1.1.0/common-31',
         'valid/spec-1.1.0/common-34',
-        'valid/spec-1.1.0/common-37',
-        'valid/spec-1.1.0/common-40',
-        'valid/spec-1.1.0/common-41',
-        'valid/spec-1.1.0/common-42',
-        'valid/spec-1.1.0/common-43',
-        'valid/spec-1.1.0/common-51',
-        'valid/spec-1.1.0/common-52',
         'valid/spec-example-1',
         'valid/spec-example-1-compact',
 
@@ -205,23 +152,14 @@ final class TomlTestComplianceTest extends TestCase
         // Table/key redefinition rules
         'invalid/table/append-with-dotted-keys-01',
         'invalid/table/append-with-dotted-keys-02',
-        'invalid/table/append-with-dotted-keys-03',
         'invalid/table/append-with-dotted-keys-05',
-        'invalid/table/append-with-dotted-keys-06',
-        'invalid/table/append-with-dotted-keys-07',
-        'invalid/table/duplicate-key-02',
-        'invalid/table/duplicate-key-03',
         'invalid/table/duplicate-key-04',
         'invalid/table/duplicate-key-05',
-        'invalid/table/duplicate-key-06',
         'invalid/table/duplicate-key-07',
         'invalid/table/duplicate-key-08',
-        'invalid/table/duplicate-key-10',
         'invalid/table/llbrace',
         'invalid/table/overwrite-array-in-parent',
         'invalid/table/overwrite-bool-with-array',
-        'invalid/table/overwrite-with-deep-table',
-        'invalid/table/redefine-01',
         'invalid/table/redefine-02',
         'invalid/table/redefine-03',
         'invalid/table/rrbrace',
@@ -230,17 +168,12 @@ final class TomlTestComplianceTest extends TestCase
         'invalid/inline-table/duplicate-key-01',
         'invalid/inline-table/duplicate-key-02',
         'invalid/inline-table/duplicate-key-03',
-        'invalid/inline-table/duplicate-key-04',
         'invalid/inline-table/overwrite-01',
         'invalid/inline-table/overwrite-02',
         'invalid/inline-table/overwrite-03',
-        'invalid/inline-table/overwrite-04',
         'invalid/inline-table/overwrite-05',
-        'invalid/inline-table/overwrite-06',
-        'invalid/inline-table/overwrite-07',
         'invalid/inline-table/overwrite-08',
         'invalid/inline-table/overwrite-09',
-        'invalid/inline-table/overwrite-10',
 
         // Datetime validation
         'invalid/datetime/day-zero',
@@ -295,13 +228,8 @@ final class TomlTestComplianceTest extends TestCase
         // Key validation
         'invalid/key/after-array',
         'invalid/key/after-table',
-        'invalid/key/after-value',
-        'invalid/key/dotted-redefine-table-01',
-        'invalid/key/dotted-redefine-table-02',
-        'invalid/key/no-eol-01',
 
         // Array of tables
-        'invalid/array/extend-defined-aot',
         'invalid/array/extending-table',
         'invalid/array/tables-01',
         'invalid/array/tables-02',

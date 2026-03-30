@@ -29,6 +29,24 @@ final class TomlParseToArrayTest extends TestCase
             "parent.child1 = \"value1\"\nparent.child2 = \"value2\"",
             ['parent' => ['child1' => 'value1', 'child2' => 'value2']],
         ];
+
+        // Numeric and special bare keys
+        yield 'numeric bare key' => ['123 = "num"', ['123' => 'num']];
+        yield 'numeric bare key with leading zeros' => ['000111 = "leading"', ['000111' => 'leading']];
+        yield 'zero bare key' => ["0 = 0", ['0' => 0]];
+        yield 'bare key with dash and digits' => ['34-11 = 23', ['34-11' => 23]];
+        yield 'bare key looks like float' => ['10e3 = "not a float"', ['10e3' => 'not a float']];
+        yield 'bare key true' => ['true = 1', ['true' => 1]];
+        yield 'bare key false' => ['false = 0', ['false' => 0]];
+        yield 'bare key inf' => ['inf = 1', ['inf' => 1]];
+        yield 'bare key nan' => ['nan = 1', ['nan' => 1]];
+        yield 'bare key mixed alpha-numeric' => ['one1two2 = "mixed"', ['one1two2' => 'mixed']];
+        yield 'bare key like date' => ['2001-02-03 = 1', ['2001-02-03' => 1]];
+        yield 'dotted numeric keys' => ['1.2 = true', ['1' => ['2' => true]]];
+        yield 'dotted numeric keys with leading zeros' => ['01.23 = true', ['01' => ['23' => true]]];
+        yield 'table with numeric name' => ["[123]\nkey = \"value\"", ['123' => ['key' => 'value']]];
+        yield 'table with date-like name' => ["[2002-01-02]\nk = 10", ['2002-01-02' => ['k' => 10]]];
+        yield 'dotted date-like keys' => ['a.2001-02-08 = 7', ['a' => ['2001-02-08' => 7]]];
     }
 
     public static function provideBasicStrings(): \Generator

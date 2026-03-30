@@ -34,9 +34,9 @@ try {
     exit(1);
 }
 
-function documentToTagged(Document $doc): array
+function documentToTagged(Document $doc): \stdClass
 {
-    $result = [];
+    $result = new \stdClass();
 
     foreach ($doc->nodes as $node) {
         match (true) {
@@ -50,36 +50,46 @@ function documentToTagged(Document $doc): array
     return $result;
 }
 
-function addTaggedEntry(array &$result, Key $key, Value $value): void
+function addTaggedEntry(\stdClass $result, Key $key, Value $value): void
 {
     $tagged = valueToTagged($value);
 
     if ($key->isSimple()) {
-        $result[$key->getFirstSegment()] = $tagged;
+        $result->{$key->getFirstSegment()} = $tagged;
         return;
     }
 
-    $current = &$result;
+    $current = $result;
     $segments = $key->segments;
     $lastIndex = \count($segments) - 1;
 
     foreach ($segments as $i => $segment) {
         if ($i === $lastIndex) {
-            $current[$segment] = $tagged;
+            $current->$segment = $tagged;
         } else {
-            $current[$segment] ??= [];
-            $current = &$current[$segment];
+            if (!isset($current->$segment)) {
+                $current->$segment = new \stdClass();
+            }
+            $current = $current->$segment;
         }
     }
 }
 
-function addTaggedTable(array &$result, Table $table): void
+function addTaggedTable(\stdClass $result, Table $table): void
 {
-    $current = &$result;
+    $current = $result;
 
     foreach ($table->name->segments as $segment) {
-        $current[$segment] ??= [];
-        $current = &$current[$segment];
+        if (!isset($current->$segment)) {
+            $current->$segment = new \stdClass();
+        }
+        $val = $current->$segment;
+        if (\is_array($val) && $val !== []) {
+            // Navigate into last element of array-of-tables
+            $current = $val[\count($val) - 1];
+        } else {
+            $current = $val;
+        }
     }
 
     foreach ($table->entries as $entry) {
@@ -89,23 +99,29 @@ function addTaggedTable(array &$result, Table $table): void
     }
 }
 
-function addTaggedTableArray(array &$result, TableArray $tableArray): void
+function addTaggedTableArray(\stdClass $result, TableArray $tableArray): void
 {
-    $current = &$result;
+    $current = $result;
     $segments = $tableArray->name->segments;
     $lastIndex = \count($segments) - 1;
 
     foreach ($segments as $i => $segment) {
         if ($i === $lastIndex) {
-            $current[$segment] ??= [];
-            $current[$segment][] = [];
-            $current = &$current[$segment][\count($current[$segment]) - 1];
+            if (!isset($current->$segment)) {
+                $current->$segment = [];
+            }
+            $newEntry = new \stdClass();
+            $current->$segment[] = $newEntry;
+            $current = $newEntry;
         } else {
-            $current[$segment] ??= [];
-            if (\is_array($current[$segment]) && \array_is_list($current[$segment]) && $current[$segment] !== []) {
-                $current = &$current[$segment][\count($current[$segment]) - 1];
+            if (!isset($current->$segment)) {
+                $current->$segment = new \stdClass();
+            }
+            $val = $current->$segment;
+            if (\is_array($val) && $val !== []) {
+                $current = $val[\count($val) - 1];
             } else {
-                $current = &$current[$segment];
+                $current = $val;
             }
         }
     }
@@ -168,27 +184,29 @@ function datetimeToTagged(DateTimeValue $value): array
     return ['type' => $type, 'value' => $raw];
 }
 
-function inlineTableToTagged(InlineTableValue $value): array
+function inlineTableToTagged(InlineTableValue $value): \stdClass
 {
-    $result = [];
+    $result = new \stdClass();
 
     foreach ($value->pairs as $key => $val) {
         // Handle dotted keys within inline tables
-        if (\str_contains($key, '.')) {
-            $segments = \explode('.', $key);
-            $current = &$result;
+        if (\str_contains((string) $key, '.')) {
+            $segments = \explode('.', (string) $key);
+            $current = $result;
             $lastIndex = \count($segments) - 1;
 
             foreach ($segments as $i => $segment) {
                 if ($i === $lastIndex) {
-                    $current[$segment] = valueToTagged($val);
+                    $current->$segment = valueToTagged($val);
                 } else {
-                    $current[$segment] ??= [];
-                    $current = &$current[$segment];
+                    if (!isset($current->$segment)) {
+                        $current->$segment = new \stdClass();
+                    }
+                    $current = $current->$segment;
                 }
             }
         } else {
-            $result[$key] = valueToTagged($val);
+            $result->{(string) $key} = valueToTagged($val);
         }
     }
 

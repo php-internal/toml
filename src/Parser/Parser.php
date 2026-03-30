@@ -69,7 +69,7 @@ final class Parser
             if ($token->type === TokenType::LeftBracket) {
                 $node = $this->parseTableOrTableArray();
                 $nodes[] = $node;
-            } elseif ($token->type === TokenType::BareKey or $token->type === TokenType::QuotedKey or $token->type === TokenType::String) {
+            } elseif ($token->type->isBareKey() or $token->type === TokenType::String) {
                 $entry = $this->parseKeyValuePair();
                 $nodes[] = $entry;
             } else {
@@ -161,6 +161,12 @@ final class Parser
             $comment = $this->advance()->literal;
         }
 
+        // Key-value pairs must be followed by newline or end of input
+        if (!$this->isAtEnd() and !$this->check(TokenType::Newline)) {
+            $t = $this->current();
+            throw new SyntaxException("Expected newline after value at line {$t->line}, column {$t->column}");
+        }
+
         $this->skipNewlines();
 
         $position = new Position($key->position->line, $key->position->column, $key->position->offset);
@@ -179,9 +185,14 @@ final class Parser
             if ($token->type === TokenType::String) {
                 $this->advance();
                 $segments[] = $token->literal;
-            } elseif ($token->type === TokenType::BareKey) {
-                $this->advance();
-                $segments[] = $token->literal;
+            } elseif ($token->type->isBareKey()) {
+                $raw = $this->parseBareKeySegment();
+                // Float tokens like "1.2" contain dots that are key separators
+                if (\str_contains($raw, '.')) {
+                    \array_push($segments, ...\explode('.', $raw));
+                } else {
+                    $segments[] = $raw;
+                }
             } else {
                 throw new SyntaxException("Expected key at line {$token->line}, column {$token->column}");
             }
@@ -196,6 +207,32 @@ final class Parser
         $position = new Position($startToken->line, $startToken->column, $startToken->position);
 
         return new Key($segments, $position);
+    }
+
+    /**
+     * Parses a bare key segment, merging adjacent tokens that form a single bare key.
+     *
+     * Handles cases like "34-11" where the lexer produces Integer("34") + Integer("-11").
+     */
+    private function parseBareKeySegment(): string
+    {
+        $token = $this->current();
+        $combined = $token->value;
+        $this->advance();
+
+        // Merge adjacent tokens that are part of the same bare key (no whitespace between them)
+        while (!$this->isAtEnd()) {
+            $next = $this->current();
+            if ($next->type->isBareKey() && $token->position + \strlen($token->value) === $next->position) {
+                $combined .= $next->value;
+                $token = $next;
+                $this->advance();
+            } else {
+                break;
+            }
+        }
+
+        return $combined;
     }
 
     private function parseValue(): Value
@@ -421,4 +458,5 @@ final class Parser
     {
         return $this->position >= \count($this->tokens) or $this->current()->type === TokenType::Eof;
     }
+
 }

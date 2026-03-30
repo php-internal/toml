@@ -390,7 +390,7 @@ final class Lexer
                 return $this->scanDateTimeOrNumber();
             } catch (SyntaxException $e) {
                 // If it's an invalid date/time error, re-throw it
-                if (\str_contains($e->getMessage(), 'Invalid date') or \str_contains($e->getMessage(), 'Invalid time')) {
+                if (\str_contains($e->getMessage(), "Invalid date '") or \str_contains($e->getMessage(), 'Invalid time')) {
                     throw $e;
                 }
 
