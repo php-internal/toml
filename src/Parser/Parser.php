@@ -69,9 +69,6 @@ final class Parser
             if ($token->type === TokenType::LeftBracket) {
                 $node = $this->parseTableOrTableArray();
                 $nodes[] = $node;
-
-                // Reset seen keys for new table
-                $this->seenKeys = [];
             } elseif ($token->type === TokenType::BareKey or $token->type === TokenType::QuotedKey or $token->type === TokenType::String) {
                 $entry = $this->parseKeyValuePair();
                 $nodes[] = $entry;
@@ -119,6 +116,9 @@ final class Parser
         }
 
         $this->skipNewlines();
+
+        // Reset seen keys for this table scope
+        $this->seenKeys = [];
 
         // Parse entries
         $entries = [];
