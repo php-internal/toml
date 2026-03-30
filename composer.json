@@ -1,6 +1,6 @@
 {
     "name": "internal/toml",
-    "description": "TOML support for PHP",
+    "description": "TOML 1.0/1.1 parser and encoder",
     "license": "BSD-3-Clause",
     "type": "library",
     "keywords": [

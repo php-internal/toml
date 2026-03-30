@@ -305,8 +305,10 @@ final class Lexer
             'n' => "\n" . ($this->advance() and ''),
             'f' => "\f" . ($this->advance() and ''),
             'r' => "\r" . ($this->advance() and ''),
+            'e' => "\x1B" . ($this->advance() and ''),
             '"' => '"' . ($this->advance() and ''),
             '\\' => '\\' . ($this->advance() and ''),
+            'x' => $this->scanHexEscape(),
             'u' => $this->scanUnicodeEscape(4),
             'U' => $this->scanUnicodeEscape(8),
             default => throw new SyntaxException("Invalid escape sequence '\\{$char}' at line {$this->line}, column {$this->column}"),
@@ -321,6 +323,22 @@ final class Lexer
         for ($i = 0; $i < $length; $i++) {
             if (!\ctype_xdigit($this->current())) {
                 throw new SyntaxException("Invalid unicode escape at line {$this->line}, column {$this->column}");
+            }
+            $hex .= $this->advance();
+        }
+
+        $codepoint = \hexdec($hex);
+        return \mb_chr($codepoint, 'UTF-8');
+    }
+
+    private function scanHexEscape(): string
+    {
+        $this->advance(); // Skip 'x'
+
+        $hex = '';
+        for ($i = 0; $i < 2; $i++) {
+            if (!\ctype_xdigit($this->current())) {
+                throw new SyntaxException("Invalid hex escape at line {$this->line}, column {$this->column}");
             }
             $hex .= $this->advance();
         }
@@ -504,7 +522,7 @@ final class Lexer
 
     private function scanDateTime(string $dateStr, int $start, int $startColumn): Token
     {
-        // hh:mm:ss
+        // hh:mm
         for ($i = 0; $i < 2; $i++) {
             if (!\ctype_digit($this->current())) {
                 throw new SyntaxException("Invalid datetime at line {$this->line}, column {$this->column}");
@@ -524,23 +542,25 @@ final class Lexer
             $dateStr .= $this->advance();
         }
 
-        if ($this->current() !== ':') {
-            throw new SyntaxException("Invalid datetime at line {$this->line}, column {$this->column}");
-        }
-        $dateStr .= $this->advance();
-
-        for ($i = 0; $i < 2; $i++) {
-            if (!\ctype_digit($this->current())) {
-                throw new SyntaxException("Invalid datetime at line {$this->line}, column {$this->column}");
-            }
+        // Optional seconds (TOML 1.1)
+        $hasSeconds = false;
+        if ($this->current() === ':') {
+            $hasSeconds = true;
             $dateStr .= $this->advance();
-        }
 
-        // Optional fractional seconds
-        if ($this->current() === '.') {
-            $dateStr .= $this->advance();
-            while (\ctype_digit($this->current())) {
+            for ($i = 0; $i < 2; $i++) {
+                if (!\ctype_digit($this->current())) {
+                    throw new SyntaxException("Invalid datetime at line {$this->line}, column {$this->column}");
+                }
                 $dateStr .= $this->advance();
+            }
+
+            // Optional fractional seconds
+            if ($this->current() === '.') {
+                $dateStr .= $this->advance();
+                while (\ctype_digit($this->current())) {
+                    $dateStr .= $this->advance();
+                }
             }
         }
 
@@ -570,9 +590,19 @@ final class Lexer
         }
 
         $value = \substr($this->input, $start, $this->position - $start);
-        $datetime = \DateTimeImmutable::createFromFormat(DATE_RFC3339_EXTENDED, $value)
-            ?: \DateTimeImmutable::createFromFormat('Y-m-d\TH:i:s', $value)
-            ?: \DateTimeImmutable::createFromFormat('Y-m-d H:i:s', $value);
+
+        // Inject :00 seconds for DateTimeImmutable parsing when seconds are omitted
+        $parseValue = $hasSeconds ? $value : \preg_replace(
+            '/^(\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2})/',
+            '$1:00',
+            $value,
+        );
+
+        $datetime = \DateTimeImmutable::createFromFormat(DATE_RFC3339_EXTENDED, $parseValue)
+            ?: \DateTimeImmutable::createFromFormat('Y-m-d\TH:i:s', $parseValue)
+            ?: \DateTimeImmutable::createFromFormat('Y-m-d H:i:s', $parseValue)
+            ?: \DateTimeImmutable::createFromFormat('Y-m-d\TH:i:sP', $parseValue)
+            ?: \DateTimeImmutable::createFromFormat('Y-m-d H:i:sP', $parseValue);
 
         return new Token(
             TokenType::Datetime,
@@ -681,7 +711,7 @@ final class Lexer
     {
         $value = '';
 
-        // hh:mm:ss
+        // hh:mm
         for ($i = 0; $i < 2; $i++) {
             if (!\ctype_digit($this->current())) {
                 throw new SyntaxException("Invalid time at line {$this->line}, column {$this->column}");
@@ -701,23 +731,23 @@ final class Lexer
             $value .= $this->advance();
         }
 
-        if ($this->current() !== ':') {
-            throw new SyntaxException("Invalid time at line {$this->line}, column {$this->column}");
-        }
-        $value .= $this->advance();
-
-        for ($i = 0; $i < 2; $i++) {
-            if (!\ctype_digit($this->current())) {
-                throw new SyntaxException("Invalid time at line {$this->line}, column {$this->column}");
-            }
+        // Optional seconds (TOML 1.1)
+        if ($this->current() === ':') {
             $value .= $this->advance();
-        }
 
-        // Optional fractional seconds
-        if ($this->current() === '.') {
-            $value .= $this->advance();
-            while (\ctype_digit($this->current())) {
+            for ($i = 0; $i < 2; $i++) {
+                if (!\ctype_digit($this->current())) {
+                    throw new SyntaxException("Invalid time at line {$this->line}, column {$this->column}");
+                }
                 $value .= $this->advance();
+            }
+
+            // Optional fractional seconds
+            if ($this->current() === '.') {
+                $value .= $this->advance();
+                while (\ctype_digit($this->current())) {
+                    $value .= $this->advance();
+                }
             }
         }
 

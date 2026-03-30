@@ -267,8 +267,8 @@ final class Parser
         $token = $this->consume(TokenType::Datetime);
         $position = new Position($token->line, $token->column, $token->position, \strlen($token->value));
 
-        // Check if it's a local time (HH:MM:SS)
-        if (\preg_match('/^\d{2}:\d{2}:\d{2}/', $token->value) === 1 and !\str_contains($token->value, '-')) {
+        // Check if it's a local time (HH:MM or HH:MM:SS)
+        if (\preg_match('/^\d{2}:\d{2}/', $token->value) === 1 and !\str_contains($token->value, '-')) {
             return new LocalTimeValue($token->value, $position);
         }
 
@@ -295,16 +295,16 @@ final class Parser
         $startToken = $this->consume(TokenType::LeftBracket);
         $elements = [];
 
-        $this->skipNewlines();
+        $this->skipNewlinesAndCommentsDiscarding();
 
         while (!$this->check(TokenType::RightBracket) and !$this->isAtEnd()) {
             $elements[] = $this->parseValue();
 
-            $this->skipNewlines();
+            $this->skipNewlinesAndCommentsDiscarding();
 
             if ($this->check(TokenType::Comma)) {
                 $this->advance();
-                $this->skipNewlines();
+                $this->skipNewlinesAndCommentsDiscarding();
 
                 // Allow trailing comma
                 if ($this->check(TokenType::RightBracket)) {
@@ -327,6 +327,8 @@ final class Parser
         $startToken = $this->consume(TokenType::LeftBrace);
         $pairs = [];
 
+        $this->skipNewlinesAndCommentsDiscarding();
+
         while (!$this->check(TokenType::RightBrace) and !$this->isAtEnd()) {
             $key = $this->parseKey();
             $this->consume(TokenType::Equals);
@@ -334,12 +336,15 @@ final class Parser
 
             $pairs[$key->__toString()] = $value;
 
+            $this->skipNewlinesAndCommentsDiscarding();
+
             if ($this->check(TokenType::Comma)) {
                 $this->advance();
+                $this->skipNewlinesAndCommentsDiscarding();
 
-                // Inline tables MUST NOT have trailing commas (unlike arrays)
+                // Allow trailing comma
                 if ($this->check(TokenType::RightBrace)) {
-                    throw new SyntaxException("Inline tables cannot have trailing commas at line {$this->current()->line}, column {$this->current()->column}");
+                    break;
                 }
             } elseif (!$this->check(TokenType::RightBrace)) {
                 throw new SyntaxException("Expected comma or closing brace at line {$this->current()->line}, column {$this->current()->column}");
@@ -366,6 +371,13 @@ final class Parser
             } else {
                 $this->advance();
             }
+        }
+    }
+
+    private function skipNewlinesAndCommentsDiscarding(): void
+    {
+        while ($this->check(TokenType::Newline) or $this->check(TokenType::Comment)) {
+            $this->advance();
         }
     }
 

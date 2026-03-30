@@ -12,7 +12,7 @@
 
 <br />
 
-[TOML v1.0.0](https://toml.io/en/v1.0.0) parser and encoder for PHP 8.1+. Parse TOML files into PHP arrays or encode PHP data structures back to TOML format.
+TOML [1.0.0](https://toml.io/en/v1.0.0)/[1.1.0](https://toml.io/en/v1.1.0) parser and encoder for PHP 8.1+. Parse TOML files into PHP arrays or encode PHP data structures back to TOML format.
 
 ## Installation
 
@@ -177,10 +177,15 @@ Toml::parseToArray(string $toml): array
 Toml::encode(array|JsonSerializable $data): Stringable
 ```
 
-## What's supported
+## Features
 
-All TOML v1.0.0 features: strings (basic/literal/multiline), integers (decimal/hex/octal/binary), floats, booleans, datetime, arrays, tables, inline tables, dotted keys, comments.
-
-The library preserves original formatting when doing round-trips (hex numbers stay hex, comments are kept, etc).
+- Full [TOML v1.1.0](https://toml.io/en/v1.1.0) spec compliance
+- Strings: basic, literal, multiline, all escape sequences including `\e` and `\xHH`
+- Numbers: integers (decimal, hex, octal, binary), floats, special values (`inf`, `nan`)
+- Date-time: offset, local date-time, local date, local time (seconds optional)
+- Tables, inline tables (multi-line with trailing commas), arrays of tables, dotted keys
+- Comments preservation
+- Format-preserving round-trips (hex numbers stay hex, etc.)
+- Encoder outputs TOML v1.0-compatible format for maximum interoperability
 
 Built with [Claude Code](https://claude.com/claude-code)

@@ -39,6 +39,12 @@ final class TomlParseToArrayTest extends TestCase
         yield 'string with quote escape' => ['str = "hello \"world\""', ['str' => 'hello "world"']];
         yield 'string with backslash escape' => ['str = "hello\\\\world"', ['str' => 'hello\\world']];
         yield 'string with unicode escape' => ['str = "hello\u0020world"', ['str' => 'hello world']];
+        yield 'string with hex escape \\x41' => ['str = "\\x41"', ['str' => 'A']];
+        yield 'string with hex escape \\x00' => ['str = "\\x00"', ['str' => "\x00"]];
+        yield 'string with hex escape \\xE9' => ['str = "Jos\\xE9"', ['str' => "José"]];
+        yield 'string with hex escape \\xFF' => ['str = "\\xFF"', ['str' => "\u{00FF}"]];
+        yield 'string with escape \\e' => ['str = "\\e"', ['str' => "\x1B"]];
+        yield 'string with escape \\e in context' => ['str = "\\e[31m"', ['str' => "\x1B[31m"]];
     }
 
     public static function provideLiteralStrings(): \Generator
@@ -104,6 +110,26 @@ final class TomlParseToArrayTest extends TestCase
             'dt = 07:32:00',
             ['dt' => '07:32:00'],
         ];
+        yield 'local time without seconds' => [
+            'dt = 07:32',
+            ['dt' => '07:32'],
+        ];
+        yield 'offset date-time without seconds' => [
+            'dt = 1979-05-27T07:32Z',
+            ['dt' => new \DateTimeImmutable('1979-05-27T07:32:00Z')],
+        ];
+        yield 'offset date-time without seconds with offset' => [
+            'dt = 1979-05-27T07:32-07:00',
+            ['dt' => new \DateTimeImmutable('1979-05-27T07:32:00-07:00')],
+        ];
+        yield 'local date-time without seconds' => [
+            'dt = 1979-05-27T07:32',
+            ['dt' => new \DateTimeImmutable('1979-05-27T07:32:00')],
+        ];
+        yield 'local date-time without seconds space separator' => [
+            'dt = 1979-05-27 07:32',
+            ['dt' => new \DateTimeImmutable('1979-05-27T07:32:00')],
+        ];
     }
 
     public static function provideArrays(): \Generator
@@ -115,6 +141,10 @@ final class TomlParseToArrayTest extends TestCase
         yield 'array with trailing comma' => ['arr = [1, 2, 3,]', ['arr' => [1, 2, 3]]];
         yield 'multiline array' => [
             "arr = [\n  1,\n  2,\n  3\n]",
+            ['arr' => [1, 2, 3]],
+        ];
+        yield 'multiline array with comments' => [
+            "arr = [\n  1, # first\n  2,\n  # standalone comment\n  3\n]",
             ['arr' => [1, 2, 3]],
         ];
     }
@@ -132,6 +162,26 @@ final class TomlParseToArrayTest extends TestCase
         yield 'inline table with mixed types' => [
             'table = {str = "text", int = 42, bool = true}',
             ['table' => ['str' => 'text', 'int' => 42, 'bool' => true]],
+        ];
+        yield 'inline table with trailing comma' => [
+            'table = {key = "value",}',
+            ['table' => ['key' => 'value']],
+        ];
+        yield 'multi-line inline table' => [
+            "table = {\n  key1 = \"value1\",\n  key2 = \"value2\"\n}",
+            ['table' => ['key1' => 'value1', 'key2' => 'value2']],
+        ];
+        yield 'multi-line inline table with comments' => [
+            "table = {\n  key1 = \"value1\", # first\n  key2 = \"value2\" # second\n}",
+            ['table' => ['key1' => 'value1', 'key2' => 'value2']],
+        ];
+        yield 'multi-line inline table with trailing comma' => [
+            "table = {\n  key1 = \"value1\",\n  key2 = \"value2\",\n}",
+            ['table' => ['key1' => 'value1', 'key2' => 'value2']],
+        ];
+        yield 'nested multi-line inline table' => [
+            "table = {\n  inner = {\n    key = \"value\",\n  },\n}",
+            ['table' => ['inner' => ['key' => 'value']]],
         ];
     }
 
@@ -160,10 +210,6 @@ final class TomlParseToArrayTest extends TestCase
         yield 'invalid array missing comma' => [
             'arr = [1 2 3]',
             'Invalid array',
-        ];
-        yield 'inline table with trailing comma' => [
-            'table = {key = "value",}',
-            'Invalid inline table',
         ];
         yield 'key without value' => [
             'key =',

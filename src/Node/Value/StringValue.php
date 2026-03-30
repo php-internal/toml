@@ -42,6 +42,7 @@ final class StringValue extends Value
             "\n" => '\n',
             "\f" => '\f',
             "\r" => '\r',
+            "\x1B" => '\u001B',
             '"' => '\"',
             '\\' => '\\\\',
         ]);
