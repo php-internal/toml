@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.2](https://github.com/php-internal/toml/compare/1.1.1...1.1.2) (2026-03-31)
+
+
+### Bug Fixes
+
+* Better spec 1.1 support ([2b45b0b](https://github.com/php-internal/toml/commit/2b45b0be8b04040bbfebc91e178a991c8bab253a))
+* Improve bare keys parsing ([cb4236a](https://github.com/php-internal/toml/commit/cb4236a318e2023308c80508102872d6c8756357))
+
 ## [1.1.1](https://github.com/php-internal/toml/compare/1.1.0...1.1.1) (2026-03-30)
 
 
