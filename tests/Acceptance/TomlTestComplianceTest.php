@@ -25,11 +25,6 @@ final class TomlTestComplianceTest extends TestCase
 
     private const ENCODER_TOML_VERSION = '1.0';
 
-    /**
-     * Known failures from toml-test suite. Supports fnmatch patterns.
-     *
-     * Each entry should be removed as the corresponding issue is fixed.
-     */
     /** Known decoder failures. Each entry should be removed as the issue is fixed. */
     private const KNOWN_DECODER_FAILURES = [
         // Null byte in key: PHP stdClass cannot have \0 property
@@ -194,79 +189,118 @@ final class TomlTestComplianceTest extends TestCase
         'invalid/spec-1.1.0/common-50-0',
     ];
 
-    /** Known encoder round-trip failures. */
+    /** Known encoder round-trip failures. Each entry should be removed as the issue is fixed. */
+    /** Known encoder round-trip failures. Each entry should be removed as the issue is fixed. */
     private const KNOWN_ENCODER_FAILURES = [
-        'encoder/*',
+        'encoder/array/array',
+        'encoder/array/nested-inline-table',
+        'encoder/array/open-parent-table',
+        'encoder/comment/tricky',
+        'encoder/datetime/local',
+        'encoder/datetime/local-time',
+        'encoder/datetime/milliseconds',
+        'encoder/float/exponent',
+        'encoder/float/long',
+        'encoder/float/max-int',
+        'encoder/float/zero',
+        'encoder/inline-table/empty',
+        'encoder/inline-table/nest',
+        'encoder/inline-table/spaces',
+        'encoder/key/alphanum',
+        'encoder/key/escapes',
+        'encoder/key/numeric-01',
+        'encoder/key/numeric-02',
+        'encoder/key/numeric-04',
+        'encoder/key/numeric-05',
+        'encoder/key/numeric-06',
+        'encoder/key/numeric-08',
+        'encoder/key/quoted-dots',
+        'encoder/key/quoted-unicode',
+        'encoder/key/special-chars',
+        'encoder/key/special-word',
+        'encoder/key/start',
+        'encoder/key/zero',
+        'encoder/multibyte',
+        'encoder/spec-1.0.0/array-of-tables-0',
+        'encoder/spec-1.0.0/float-0',
+        'encoder/spec-1.0.0/float-1',
+        'encoder/spec-1.0.0/keys-0',
+        'encoder/spec-1.0.0/keys-1',
+        'encoder/spec-1.0.0/keys-3',
+        'encoder/spec-1.0.0/keys-7',
+        'encoder/spec-1.0.0/local-date-time-0',
+        'encoder/spec-1.0.0/local-time-0',
+        'encoder/spec-1.0.0/offset-date-time-0',
+        'encoder/spec-1.0.0/string-7',
+        'encoder/spec-1.0.0/table-0',
+        'encoder/spec-1.0.0/table-2',
+        'encoder/spec-1.0.0/table-3',
+        'encoder/spec-1.0.0/table-4',
+        'encoder/spec-1.0.0/table-5',
+        'encoder/spec-1.0.0/table-6',
+        'encoder/string/escapes',
+        'encoder/string/multiline-escaped-crlf',
+        'encoder/string/multiline-quotes',
+        'encoder/string/quoted-unicode',
+        'encoder/string/raw-multiline',
+        'encoder/string/unicode-escape',
+        'encoder/table/array-empty',
+        'encoder/table/empty',
+        'encoder/table/empty-name',
+        'encoder/table/keyword',
+        'encoder/table/names',
+        'encoder/table/names-with-values',
+        'encoder/table/no-eol',
+        'encoder/table/sub-empty',
+        'encoder/table/whitespace',
+        'encoder/table/without-super',
     ];
 
-    /**
-     * Provides all test case names from toml-test list.
-     *
-     * @return \Generator<string, array{string}>
-     */
+    /** Encoder failures that only reproduce on Windows (datetime timezone handling, CRLF). */
+    private const KNOWN_ENCODER_FAILURES_WINDOWS = [
+        'encoder/comment/everywhere',
+        'encoder/datetime/edge',
+        'encoder/datetime/leap-year',
+        'encoder/datetime/local-date',
+        'encoder/spec-1.0.0/local-date-0',
+        'encoder/spec-1.0.0/table-7',
+    ];
+
+    /** @return \Generator<string, array{string}> */
     public static function provideDecoderTestCases(): \Generator
     {
-        $binary = self::tomlTestBinary();
+        return self::listTestCases(self::DECODER_TOML_VERSION, ['valid/', 'invalid/']);
+    }
 
-        if (!\file_exists($binary)) {
-            return;
-        }
-
-        $process = \proc_open(
-            [$binary, 'list', '-toml', self::DECODER_TOML_VERSION],
-            [1 => ['pipe', 'w'], 2 => ['pipe', 'w']],
-            $pipes,
-        );
-
-        if (!\is_resource($process)) {
-            return;
-        }
-
-        $stdout = \stream_get_contents($pipes[1]);
-        \fclose($pipes[1]);
-        \fclose($pipes[2]);
-        \proc_close($process);
-
-        $seen = [];
-        foreach (\explode("\n", \trim($stdout)) as $line) {
-            $name = \preg_replace('/\.(toml|json)$/', '', \trim($line));
-            if ($name === '' || \str_starts_with($name, 'encoder/') || isset($seen[$name])) {
-                continue;
-            }
-            $seen[$name] = true;
-
-            yield $name => [$name];
-        }
+    /** @return \Generator<string, array{string}> */
+    public static function provideEncoderTestCases(): \Generator
+    {
+        return self::listTestCases(self::ENCODER_TOML_VERSION, ['valid/'], prefix: 'encoder/');
     }
 
     #[DataProvider('provideDecoderTestCases')]
     public function testDecoderCase(string $testName): void
     {
-        $result = $this->runSingleTest($testName);
-
-        if ($result === null) {
-            if (self::isKnownFailure($testName)) {
-                self::fail("Known failure '{$testName}' now passes — remove it from KNOWN_FAILURES.");
-            }
-
-            $this->addToAssertionCount(1);
-
-            return;
-        }
-
-        // Test failed
-        if (self::isKnownFailure($testName)) {
-            self::markTestIncomplete($result);
-        }
-
-        self::fail($result);
+        $this->runComplianceCase(
+            $testName,
+            self::KNOWN_DECODER_FAILURES,
+            'KNOWN_DECODER_FAILURES',
+        );
     }
 
-    public function testEncoderCompliance(): void
+    #[DataProvider('provideEncoderTestCases')]
+    public function testEncoderCase(string $testName): void
     {
-        $result = $this->runTomlTestSuite(self::ENCODER_TOML_VERSION, skipInvalid: true);
+        $knownFailures = \DIRECTORY_SEPARATOR === '\\'
+            ? [...self::KNOWN_ENCODER_FAILURES, ...self::KNOWN_ENCODER_FAILURES_WINDOWS]
+            : self::KNOWN_ENCODER_FAILURES;
 
-        self::assertSame(0, $result['exit_code'], "Encoder compliance failed:\n" . $result['output']);
+        $this->runComplianceCase(
+            $testName,
+            $knownFailures,
+            'KNOWN_ENCODER_FAILURES',
+            encoder: true,
+        );
     }
 
     protected function setUp(): void
@@ -283,9 +317,105 @@ final class TomlTestComplianceTest extends TestCase
         return self::TOML_TEST_DIR . '/' . $name;
     }
 
-    private static function isKnownFailure(string $path): bool
+    /**
+     * Lists test cases from toml-test binary.
+     *
+     * @param string   $tomlVersion TOML spec version
+     * @param string   ...$prefixes Only include names starting with these prefixes
+     * @param ?string  $prefix      Replace "valid/" with this prefix in output names
+     * @return \Generator<string, array{string}>
+     */
+    /**
+     * @param list<string> $prefixes
+     */
+    private static function listTestCases(string $tomlVersion, array $prefixes, ?string $prefix = null): \Generator
     {
-        foreach (self::KNOWN_DECODER_FAILURES as $pattern) {
+        $binary = self::tomlTestBinary();
+
+        if (!\file_exists($binary)) {
+            return;
+        }
+
+        $process = \proc_open(
+            [$binary, 'list', '-toml', $tomlVersion],
+            [1 => ['pipe', 'w'], 2 => ['pipe', 'w']],
+            $pipes,
+        );
+
+        if (!\is_resource($process)) {
+            return;
+        }
+
+        $stdout = \stream_get_contents($pipes[1]);
+        \fclose($pipes[1]);
+        \fclose($pipes[2]);
+        \proc_close($process);
+
+        $seen = [];
+        foreach (\explode("\n", \trim($stdout)) as $line) {
+            $name = \preg_replace('/\.(toml|json)$/', '', \trim($line));
+            if ($name === '' || isset($seen[$name])) {
+                continue;
+            }
+
+            $matched = false;
+            foreach ($prefixes as $p) {
+                if (\str_starts_with($name, $p)) {
+                    $matched = true;
+                    break;
+                }
+            }
+            if (!$matched) {
+                continue;
+            }
+
+            $seen[$name] = true;
+
+            $testName = $prefix !== null
+                ? $prefix . \substr($name, \strlen('valid/'))
+                : $name;
+
+            yield $testName => [$testName];
+        }
+    }
+
+    /**
+     * Runs a single test case and handles known-failure logic.
+     *
+     * @param list<string> $knownFailures
+     */
+    private function runComplianceCase(
+        string $testName,
+        array $knownFailures,
+        string $listName,
+        bool $encoder = false,
+    ): void {
+        $result = $this->runSingleTest($testName, $encoder);
+        $isKnown = self::matchesAny($testName, $knownFailures);
+
+        if ($result === null) {
+            if ($isKnown) {
+                self::fail("Known failure '{$testName}' now passes — remove it from {$listName}.");
+            }
+
+            $this->addToAssertionCount(1);
+
+            return;
+        }
+
+        if ($isKnown) {
+            self::markTestIncomplete($result);
+        }
+
+        self::fail($result);
+    }
+
+    /**
+     * @param list<string> $patterns
+     */
+    private static function matchesAny(string $path, array $patterns): bool
+    {
+        foreach ($patterns as $pattern) {
             if (\fnmatch($pattern, $path)) {
                 return true;
             }
@@ -299,19 +429,26 @@ final class TomlTestComplianceTest extends TestCase
      *
      * @return string|null Failure details or null if passed.
      */
-    private function runSingleTest(string $testName): ?string
+    private function runSingleTest(string $testName, bool $encoder = false): ?string
     {
         $binary = self::tomlTestBinary();
 
+        $args = [
+            $binary, 'test',
+            '-toml', $encoder ? self::ENCODER_TOML_VERSION : self::DECODER_TOML_VERSION,
+            '-color', 'never',
+            '-json',
+            '-run', $testName,
+            '-decoder', PHP_BINARY . ' ' . self::DECODER,
+        ];
+
+        if ($encoder) {
+            $args[] = '-encoder';
+            $args[] = PHP_BINARY . ' ' . self::ENCODER;
+        }
+
         $process = \proc_open(
-            [
-                $binary, 'test',
-                '-toml', self::DECODER_TOML_VERSION,
-                '-color', 'never',
-                '-json',
-                '-run', $testName,
-                '-decoder', PHP_BINARY . ' ' . self::DECODER,
-            ],
+            $args,
             [1 => ['pipe', 'w'], 2 => ['pipe', 'w']],
             $pipes,
         );
@@ -328,7 +465,6 @@ final class TomlTestComplianceTest extends TestCase
                 continue;
             }
 
-            // Build readable output with full context
             $lines = ["FAIL {$test['path']}"];
             $lines[] = '';
             $lines[] = $test['failure'];
@@ -353,48 +489,5 @@ final class TomlTestComplianceTest extends TestCase
         }
 
         return null;
-    }
-
-    /**
-     * Runs the full toml-test suite with encoder, skipping known failures.
-     *
-     * @return array{exit_code: int, output: string}
-     */
-    private function runTomlTestSuite(string $tomlVersion, bool $skipInvalid = false): array
-    {
-        $binary = self::tomlTestBinary();
-
-        $args = [
-            $binary, 'test',
-            '-toml', $tomlVersion,
-            '-color', 'never',
-            '-decoder', PHP_BINARY . ' ' . self::DECODER,
-            '-encoder', PHP_BINARY . ' ' . self::ENCODER,
-        ];
-
-        $skipPatterns = [...self::KNOWN_DECODER_FAILURES];
-
-        if ($skipInvalid) {
-            \array_push($skipPatterns, 'invalid/*', ...self::KNOWN_ENCODER_FAILURES);
-        }
-
-        foreach ($skipPatterns as $skip) {
-            $args[] = '-skip';
-            $args[] = $skip;
-        }
-
-        $process = \proc_open(
-            $args,
-            [1 => ['pipe', 'w'], 2 => ['pipe', 'w']],
-            $pipes,
-        );
-
-        $stdout = \stream_get_contents($pipes[1]);
-        $stderr = \stream_get_contents($pipes[2]);
-        \fclose($pipes[1]);
-        \fclose($pipes[2]);
-        $exitCode = \proc_close($process);
-
-        return ['exit_code' => $exitCode, 'output' => $stdout . $stderr];
     }
 }
