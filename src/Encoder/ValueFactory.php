@@ -28,6 +28,7 @@ final class ValueFactory
     public static function create(mixed $value): Value
     {
         return match (true) {
+            $value instanceof Value => $value,
             \is_string($value) => self::createString($value),
             \is_int($value) => self::createInteger($value),
             \is_float($value) => self::createFloat($value),

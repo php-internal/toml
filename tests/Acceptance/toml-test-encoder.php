@@ -5,6 +5,10 @@ declare(strict_types=1);
 
 require __DIR__ . '/../../vendor/autoload.php';
 
+use Internal\Toml\Node\Position;
+use Internal\Toml\Node\Value\DateTimeType;
+use Internal\Toml\Node\Value\DateTimeValue;
+use Internal\Toml\Node\Value\LocalTimeValue;
 use Internal\Toml\Toml;
 
 $input = \file_get_contents('php://stdin');
@@ -51,10 +55,16 @@ function convertTaggedValue(string $type, string $value): mixed
         'integer' => (int) $value,
         'float' => convertFloat($value),
         'bool' => $value === 'true',
-        'datetime' => new \DateTimeImmutable($value),
-        'datetime-local' => new \DateTimeImmutable($value),
-        'date-local' => new \DateTimeImmutable($value),
-        'time-local' => $value,
+        'datetime' => new DateTimeValue(
+            new \DateTimeImmutable($value), DateTimeType::OffsetDatetime, $value, new Position(0, 0, 0),
+        ),
+        'datetime-local' => new DateTimeValue(
+            new \DateTimeImmutable($value), DateTimeType::LocalDatetime, $value, new Position(0, 0, 0),
+        ),
+        'date-local' => new DateTimeValue(
+            new \DateTimeImmutable($value), DateTimeType::LocalDate, $value, new Position(0, 0, 0),
+        ),
+        'time-local' => new LocalTimeValue($value, new Position(0, 0, 0)),
         default => throw new \RuntimeException("Unknown type: {$type}"),
     };
 }

@@ -192,13 +192,9 @@ final class TomlTestComplianceTest extends TestCase
     /** Known encoder round-trip failures. Each entry should be removed as the issue is fixed. */
     /** Known encoder round-trip failures. Each entry should be removed as the issue is fixed. */
     private const KNOWN_ENCODER_FAILURES = [
-        'encoder/array/array',
         'encoder/array/nested-inline-table',
         'encoder/array/open-parent-table',
         'encoder/comment/tricky',
-        'encoder/datetime/local',
-        'encoder/datetime/local-time',
-        'encoder/datetime/milliseconds',
         'encoder/float/exponent',
         'encoder/float/long',
         'encoder/float/max-int',
@@ -228,9 +224,6 @@ final class TomlTestComplianceTest extends TestCase
         'encoder/spec-1.0.0/keys-1',
         'encoder/spec-1.0.0/keys-3',
         'encoder/spec-1.0.0/keys-7',
-        'encoder/spec-1.0.0/local-date-time-0',
-        'encoder/spec-1.0.0/local-time-0',
-        'encoder/spec-1.0.0/offset-date-time-0',
         'encoder/spec-1.0.0/string-7',
         'encoder/spec-1.0.0/table-0',
         'encoder/spec-1.0.0/table-2',
@@ -256,14 +249,8 @@ final class TomlTestComplianceTest extends TestCase
         'encoder/table/without-super',
     ];
 
-    /** Encoder failures that only reproduce on Windows (datetime timezone handling, CRLF). */
+    /** Encoder failures that only reproduce on Windows. */
     private const KNOWN_ENCODER_FAILURES_WINDOWS = [
-        'encoder/comment/everywhere',
-        'encoder/datetime/edge',
-        'encoder/datetime/leap-year',
-        'encoder/datetime/local-date',
-        'encoder/spec-1.0.0/local-date-0',
-        'encoder/spec-1.0.0/table-7',
     ];
 
     /** @return \Generator<string, array{string}> */
