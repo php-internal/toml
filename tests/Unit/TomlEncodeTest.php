@@ -197,6 +197,65 @@ final class TomlEncodeTest extends TestCase
         self::assertStringContainsString('2024-01-15T10:30:00+03:00', $toml);
     }
 
+    public function testEncodeDateLocalProducesDateOnly(): void
+    {
+        $data = [
+            'bestdayever' => new \Internal\Toml\Node\Value\DateTimeValue(
+                new \DateTimeImmutable('1987-07-05'),
+                \Internal\Toml\Node\Value\DateTimeType::LocalDate,
+                '1987-07-05',
+                new \Internal\Toml\Node\Position(0, 0, 0),
+            ),
+        ];
+
+        $toml = (string) Toml::encode($data);
+
+        self::assertStringContainsString('bestdayever = 1987-07-05', $toml);
+        self::assertStringNotContainsString('T', $toml);
+    }
+
+    public function testEncodeDatetimeLocalProducesNoTimezone(): void
+    {
+        $data = [
+            'dt' => new \Internal\Toml\Node\Value\DateTimeValue(
+                new \DateTimeImmutable('1979-05-27T07:32:00'),
+                \Internal\Toml\Node\Value\DateTimeType::LocalDatetime,
+                '1979-05-27T07:32:00',
+                new \Internal\Toml\Node\Position(0, 0, 0),
+            ),
+        ];
+
+        $toml = (string) Toml::encode($data);
+
+        self::assertStringContainsString('dt = 1979-05-27T07:32:00', $toml);
+        self::assertStringNotContainsString('Z', $toml);
+        self::assertStringNotContainsString('+', $toml);
+    }
+
+    public function testEncodeLocalTimeProducesTimeOnly(): void
+    {
+        $data = [
+            't' => new \Internal\Toml\Node\Value\LocalTimeValue(
+                '07:32:00',
+                new \Internal\Toml\Node\Position(0, 0, 0),
+            ),
+        ];
+
+        $toml = (string) Toml::encode($data);
+
+        self::assertStringContainsString('t = 07:32:00', $toml);
+    }
+
+    public function testEncodeDateLocalRoundTrip(): void
+    {
+        $toml = "d = 1987-07-05";
+        $parsed = Toml::parseToArray($toml);
+        $encoded = (string) Toml::encode($parsed);
+        $reparsed = Toml::parseToArray($encoded);
+
+        self::assertEquals($parsed, $reparsed);
+    }
+
     // ============================================
     // JsonSerializable Support Tests
     // ============================================
@@ -378,7 +437,7 @@ final class TomlEncodeTest extends TestCase
         self::assertEquals(
             $originalArray,
             $reEncodedArray,
-            "Round-trip encoding/decoding changed the data structure for {$filename}"
+            "Round-trip encoding/decoding changed the data structure for {$filename}",
         );
     }
 }

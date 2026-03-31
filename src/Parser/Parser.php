@@ -69,7 +69,7 @@ final class Parser
             if ($token->type === TokenType::LeftBracket) {
                 $node = $this->parseTableOrTableArray();
                 $nodes[] = $node;
-            } elseif ($token->type === TokenType::BareKey or $token->type === TokenType::QuotedKey or $token->type === TokenType::String) {
+            } elseif ($token->type->isBareKey() or $token->type === TokenType::String) {
                 $entry = $this->parseKeyValuePair();
                 $nodes[] = $entry;
             } else {
@@ -94,8 +94,16 @@ final class Parser
         $key = $this->parseKey();
 
         // Check for table redefinition (for non-array tables)
-        if (!$isArray) {
-            $tableName = $key->__toString();
+        $tableName = $key->__toString();
+        if ($isArray) {
+            // New array-of-tables element: reset subtable tracking for this prefix
+            $prefix = $tableName . '.';
+            foreach (\array_keys($this->seenTables) as $seen) {
+                if (\str_starts_with($seen, $prefix)) {
+                    unset($this->seenTables[$seen]);
+                }
+            }
+        } else {
             if (isset($this->seenTables[$tableName])) {
                 throw new SyntaxException("Table '{$tableName}' is already defined at line {$key->position->line}, column {$key->position->column}");
             }
@@ -161,6 +169,12 @@ final class Parser
             $comment = $this->advance()->literal;
         }
 
+        // Key-value pairs must be followed by newline or end of input
+        if (!$this->isAtEnd() and !$this->check(TokenType::Newline)) {
+            $t = $this->current();
+            throw new SyntaxException("Expected newline after value at line {$t->line}, column {$t->column}");
+        }
+
         $this->skipNewlines();
 
         $position = new Position($key->position->line, $key->position->column, $key->position->offset);
@@ -179,9 +193,14 @@ final class Parser
             if ($token->type === TokenType::String) {
                 $this->advance();
                 $segments[] = $token->literal;
-            } elseif ($token->type === TokenType::BareKey) {
-                $this->advance();
-                $segments[] = $token->literal;
+            } elseif ($token->type->isBareKey()) {
+                $raw = $this->parseBareKeySegment();
+                // Float tokens like "1.2" contain dots that are key separators
+                if (\str_contains($raw, '.')) {
+                    \array_push($segments, ...\explode('.', $raw));
+                } else {
+                    $segments[] = $raw;
+                }
             } else {
                 throw new SyntaxException("Expected key at line {$token->line}, column {$token->column}");
             }
@@ -196,6 +215,32 @@ final class Parser
         $position = new Position($startToken->line, $startToken->column, $startToken->position);
 
         return new Key($segments, $position);
+    }
+
+    /**
+     * Parses a bare key segment, merging adjacent tokens that form a single bare key.
+     *
+     * Handles cases like "34-11" where the lexer produces Integer("34") + Integer("-11").
+     */
+    private function parseBareKeySegment(): string
+    {
+        $token = $this->current();
+        $combined = $token->value;
+        $this->advance();
+
+        // Merge adjacent tokens that are part of the same bare key (no whitespace between them)
+        while (!$this->isAtEnd()) {
+            $next = $this->current();
+            if ($next->type->isBareKey() && $token->position + \strlen($token->value) === $next->position) {
+                $combined .= $next->value;
+                $token = $next;
+                $this->advance();
+            } else {
+                break;
+            }
+        }
+
+        return $combined;
     }
 
     private function parseValue(): Value
@@ -280,9 +325,9 @@ final class Parser
 
         // Check if it has timezone offset
         $hasTimezone = \str_contains($token->value, 'Z')
-            or \str_contains($token->value, 'z')
-            or \preg_match('/[+-]\d{2}:\d{2}$/', $token->value) === 1
-            or \preg_match('/[+-]\d{4}$/', $token->value) === 1;
+            || \str_contains($token->value, 'z')
+            || \preg_match('/[+-]\d{2}:\d{2}$/', $token->value) === 1
+            || \preg_match('/[+-]\d{4}$/', $token->value) === 1;
 
         $type = $hasTimezone ? DateTimeType::OffsetDatetime : DateTimeType::LocalDatetime;
         $datetime = $token->literal instanceof \DateTimeImmutable ? $token->literal : new \DateTimeImmutable($token->value);
@@ -334,7 +379,7 @@ final class Parser
             $this->consume(TokenType::Equals);
             $value = $this->parseValue();
 
-            $pairs[$key->__toString()] = $value;
+            $pairs[\implode('.', $key->segments)] = $value;
 
             $this->skipNewlinesAndCommentsDiscarding();
 

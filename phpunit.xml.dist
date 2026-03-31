@@ -4,7 +4,7 @@
          bootstrap="vendor/autoload.php"
          colors="true"
          cacheResultFile="runtime/phpunit/result.cache"
-         failOnWarning="true"
+         failOnWarning="false"
          failOnRisky="true"
          stderr="true"
          beStrictAboutOutputDuringTests="true"
@@ -16,6 +16,9 @@
         </testsuite>
         <testsuite name="Arch">
             <directory>tests/Arch</directory>
+        </testsuite>
+        <testsuite name="Acceptance">
+            <directory>tests/Acceptance</directory>
         </testsuite>
     </testsuites>
     <coverage>

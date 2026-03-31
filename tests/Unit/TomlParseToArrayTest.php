@@ -29,6 +29,24 @@ final class TomlParseToArrayTest extends TestCase
             "parent.child1 = \"value1\"\nparent.child2 = \"value2\"",
             ['parent' => ['child1' => 'value1', 'child2' => 'value2']],
         ];
+
+        // Numeric and special bare keys
+        yield 'numeric bare key' => ['123 = "num"', ['123' => 'num']];
+        yield 'numeric bare key with leading zeros' => ['000111 = "leading"', ['000111' => 'leading']];
+        yield 'zero bare key' => ["0 = 0", ['0' => 0]];
+        yield 'bare key with dash and digits' => ['34-11 = 23', ['34-11' => 23]];
+        yield 'bare key looks like float' => ['10e3 = "not a float"', ['10e3' => 'not a float']];
+        yield 'bare key true' => ['true = 1', ['true' => 1]];
+        yield 'bare key false' => ['false = 0', ['false' => 0]];
+        yield 'bare key inf' => ['inf = 1', ['inf' => 1]];
+        yield 'bare key nan' => ['nan = 1', ['nan' => 1]];
+        yield 'bare key mixed alpha-numeric' => ['one1two2 = "mixed"', ['one1two2' => 'mixed']];
+        yield 'bare key like date' => ['2001-02-03 = 1', ['2001-02-03' => 1]];
+        yield 'dotted numeric keys' => ['1.2 = true', ['1' => ['2' => true]]];
+        yield 'dotted numeric keys with leading zeros' => ['01.23 = true', ['01' => ['23' => true]]];
+        yield 'table with numeric name' => ["[123]\nkey = \"value\"", ['123' => ['key' => 'value']]];
+        yield 'table with date-like name' => ["[2002-01-02]\nk = 10", ['2002-01-02' => ['k' => 10]]];
+        yield 'dotted date-like keys' => ['a.2001-02-08 = 7', ['a' => ['2001-02-08' => 7]]];
     }
 
     public static function provideBasicStrings(): \Generator
@@ -112,7 +130,7 @@ final class TomlParseToArrayTest extends TestCase
         ];
         yield 'local time without seconds' => [
             'dt = 07:32',
-            ['dt' => '07:32'],
+            ['dt' => '07:32:00'],
         ];
         yield 'offset date-time without seconds' => [
             'dt = 1979-05-27T07:32Z',
@@ -265,6 +283,31 @@ TOML;
         self::assertSame(['key' => 'value'], $result);
     }
 
+    public function testCommentAfterTableHeaderNoSpace(): void
+    {
+        $toml = "[[aot]]# Comment\nk = 1\n[[aot]]# Comment\nk = 2";
+        $result = Toml::parseToArray($toml);
+
+        self::assertSame(['aot' => [['k' => 1], ['k' => 2]]], $result);
+    }
+
+    public function testCommentAfterValueNoSpace(): void
+    {
+        $toml = "k = 99# Comment";
+        $result = Toml::parseToArray($toml);
+
+        self::assertSame(['k' => 99], $result);
+    }
+
+    public function testLocalDateWithComment(): void
+    {
+        $toml = "d = 1979-05-27 # Comment";
+        $result = Toml::parseToArray($toml);
+
+        self::assertInstanceOf(\DateTimeImmutable::class, $result['d']);
+        self::assertSame('1979-05-27', $result['d']->format('Y-m-d'));
+    }
+
     // ============================================
     // String Types Tests
     // ============================================
@@ -321,6 +364,78 @@ TOML;
 
         // Assert
         self::assertSame(['str' => "line one\\n\nline two\\t\nline three"], $result);
+    }
+
+    public function testMultilineBasicStringWhitespaceLineEndingEscape(): void
+    {
+        // Arrange — backslash followed by spaces then newline trims all whitespace
+        $toml = "str = \"\"\"\\\n  hello\"\"\"";
+
+        // Act
+        $result = Toml::parseToArray($toml);
+
+        // Assert
+        self::assertSame(['str' => 'hello'], $result);
+    }
+
+    public function testMultilineBasicStringBackslashSpacesNewline(): void
+    {
+        // Arrange — backslash + trailing spaces + newline = line continuation
+        $toml = "str = \"\"\"abc\\   \nhello\"\"\"";
+
+        // Act
+        $result = Toml::parseToArray($toml);
+
+        // Assert
+        self::assertSame(['str' => 'abchello'], $result);
+    }
+
+    public function testMultilineBasicStringFourQuotes(): void
+    {
+        // Arrange — four consecutive double quotes: """" → """ + one extra "
+        $toml = 'str = """"one quote""""';
+
+        // Act
+        $result = Toml::parseToArray($toml);
+
+        // Assert
+        self::assertSame(['str' => '"one quote"'], $result);
+    }
+
+    public function testMultilineBasicStringFiveQuotes(): void
+    {
+        // Arrange — five consecutive double quotes: """"" → """ + two extra ""
+        $toml = 'str = """""two quotes"""""';
+
+        // Act
+        $result = Toml::parseToArray($toml);
+
+        // Assert
+        self::assertSame(['str' => '""two quotes""'], $result);
+    }
+
+    public function testMultilineLiteralStringFourQuotes(): void
+    {
+        // Arrange
+        $toml = "str = ''''one quote''''";
+
+        // Act
+        $result = Toml::parseToArray($toml);
+
+        // Assert
+        self::assertSame(['str' => "'one quote'"], $result);
+    }
+
+    public function testMultilineLiteralStringEmpty(): void
+    {
+        // Arrange — empty multiline basic string
+        $toml = 'str = """"""';
+
+        // Act
+        $result = Toml::parseToArray($toml);
+
+        // Assert
+        self::assertSame(['str' => ''], $result);
     }
 
     // ============================================
@@ -518,6 +633,31 @@ TOML;
                         ['name' => 'granny smith'],
                     ],
                 ],
+            ],
+        ], $result);
+    }
+
+    public function testDecodeArrayOfTablesWithSubtables(): void
+    {
+        // Arrange — subtable should be scoped to each array-of-tables element
+        $toml = <<<'TOML'
+[[arr]]
+[arr.subtab]
+val = 1
+
+[[arr]]
+[arr.subtab]
+val = 2
+TOML;
+
+        // Act
+        $result = Toml::parseToArray($toml);
+
+        // Assert
+        self::assertSame([
+            'arr' => [
+                ['subtab' => ['val' => 1]],
+                ['subtab' => ['val' => 2]],
             ],
         ], $result);
     }

@@ -30,4 +30,18 @@ enum TokenType: string
     case QuotedKey = 'QUOTED_KEY';
     case Comment = 'COMMENT';
     case Whitespace = 'WHITESPACE';
+
+    /**
+     * Whether this token type can appear as a bare key segment.
+     *
+     * The lexer may tokenize bare keys like "123", "true", "inf" as
+     * Integer, Boolean, Float, or Datetime. In key context, these are bare keys.
+     */
+    public function isBareKey(): bool
+    {
+        return match ($this) {
+            self::BareKey, self::Integer, self::Float, self::Boolean, self::Datetime => true,
+            default => false,
+        };
+    }
 }

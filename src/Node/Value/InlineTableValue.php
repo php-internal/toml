@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Internal\Toml\Node\Value;
 
 use Internal\Toml\Node\Entry;
+use Internal\Toml\Node\Key;
 use Internal\Toml\Node\MultiLineNode;
 use Internal\Toml\Node\Position;
 
@@ -60,7 +61,7 @@ final class InlineTableValue extends Value implements MultiLineNode
 
         $parts = [];
         foreach ($this->pairs as $key => $value) {
-            $parts[] = $key . ' = ' . (string) $value;
+            $parts[] = Key::quoteIfNeeded($key) . ' = ' . (string) $value;
         }
 
         return '{' . \implode(', ', $parts) . '}';

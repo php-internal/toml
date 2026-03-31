@@ -521,9 +521,7 @@ final class ValueFactoryTest extends TestCase
         };
 
         $outerJsonSerializable = new class($innerJsonSerializable) implements \JsonSerializable {
-            public function __construct(private readonly \JsonSerializable $inner)
-            {
-            }
+            public function __construct(private readonly \JsonSerializable $inner) {}
 
             public function jsonSerialize(): array
             {

@@ -206,7 +206,13 @@ final class Document extends Node implements MultiLineNode
 
         foreach ($table->name->segments as $segment) {
             $current[$segment] ??= [];
-            $current = &$current[$segment];
+
+            // If the segment is an array-of-tables, navigate into the last element
+            if (\is_array($current[$segment]) and \array_is_list($current[$segment]) and $current[$segment] !== []) {
+                $current = &$current[$segment][\count($current[$segment]) - 1];
+            } else {
+                $current = &$current[$segment];
+            }
         }
 
         foreach ($table->entries as $entry) {
