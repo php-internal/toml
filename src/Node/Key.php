@@ -56,15 +56,7 @@ final class Key extends Node
 
     public function __toString(): string
     {
-        $result = [];
-
-        foreach ($this->segments as $segment) {
-            $result[] = self::needsQuoting($segment)
-                ? '"' . \addcslashes($segment, "\"\\\n\r\t") . '"'
-                : $segment;
-        }
-
-        return \implode('.', $result);
+        return \implode('.', \array_map(self::quoteIfNeeded(...), $this->segments));
     }
 
     /**

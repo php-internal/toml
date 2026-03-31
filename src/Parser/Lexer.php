@@ -322,18 +322,17 @@ final class Lexer
     private function scanEscapeSequence(): string
     {
         $this->advance(); // Skip backslash
-
-        $char = $this->current();
+        $char = $this->advance(); // Consume escape character
 
         return match ($char) {
-            'b' => "\x08" . ($this->advance() and ''),
-            't' => "\t" . ($this->advance() and ''),
-            'n' => "\n" . ($this->advance() and ''),
-            'f' => "\f" . ($this->advance() and ''),
-            'r' => "\r" . ($this->advance() and ''),
-            'e' => "\x1B" . ($this->advance() and ''),
-            '"' => '"' . ($this->advance() and ''),
-            '\\' => '\\' . ($this->advance() and ''),
+            'b' => "\x08",
+            't' => "\t",
+            'n' => "\n",
+            'f' => "\f",
+            'r' => "\r",
+            'e' => "\x1B",
+            '"' => '"',
+            '\\' => '\\',
             'x' => $this->scanHexEscape(),
             'u' => $this->scanUnicodeEscape(4),
             'U' => $this->scanUnicodeEscape(8),
@@ -343,8 +342,6 @@ final class Lexer
 
     private function scanUnicodeEscape(int $length): string
     {
-        $this->advance(); // Skip 'u' or 'U'
-
         $hex = '';
         for ($i = 0; $i < $length; $i++) {
             if (!\ctype_xdigit($this->current())) {
@@ -359,8 +356,6 @@ final class Lexer
 
     private function scanHexEscape(): string
     {
-        $this->advance(); // Skip 'x'
-
         $hex = '';
         for ($i = 0; $i < 2; $i++) {
             if (!\ctype_xdigit($this->current())) {
@@ -389,7 +384,7 @@ final class Lexer
                 $offset++;
                 continue;
             }
-            return false;
+            return false; // includes $ch === '' (end of input)
         }
     }
 

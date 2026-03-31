@@ -190,7 +190,6 @@ final class TomlTestComplianceTest extends TestCase
     ];
 
     /** Known encoder round-trip failures. Each entry should be removed as the issue is fixed. */
-    /** Known encoder round-trip failures. Each entry should be removed as the issue is fixed. */
     private const KNOWN_ENCODER_FAILURES = [
         'encoder/array/nested-inline-table',
         'encoder/array/open-parent-table',
@@ -249,9 +248,6 @@ final class TomlTestComplianceTest extends TestCase
         'encoder/table/without-super',
     ];
 
-    /** Encoder failures that only reproduce on Windows. */
-    private const KNOWN_ENCODER_FAILURES_WINDOWS = [
-    ];
 
     /** @return \Generator<string, array{string}> */
     public static function provideDecoderTestCases(): \Generator
@@ -278,13 +274,9 @@ final class TomlTestComplianceTest extends TestCase
     #[DataProvider('provideEncoderTestCases')]
     public function testEncoderCase(string $testName): void
     {
-        $knownFailures = \DIRECTORY_SEPARATOR === '\\'
-            ? [...self::KNOWN_ENCODER_FAILURES, ...self::KNOWN_ENCODER_FAILURES_WINDOWS]
-            : self::KNOWN_ENCODER_FAILURES;
-
         $this->runComplianceCase(
             $testName,
-            $knownFailures,
+            self::KNOWN_ENCODER_FAILURES,
             'KNOWN_ENCODER_FAILURES',
             encoder: true,
         );
