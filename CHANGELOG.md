@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.1.3](https://github.com/php-internal/toml/compare/1.1.2...1.1.3) (2026-06-28)
+
+
+### Documentation
+
+* add Vibe Index badge and switch donations to Boosty ([e6312e7](https://github.com/php-internal/toml/commit/e6312e795b59000ad5d82434acbb034d0f75bdf6))
+* pass RELEASE_TOKEN to the badge checkout so the push isn't 403'd ([2f9e036](https://github.com/php-internal/toml/commit/2f9e0360fcccba51f93ba5008c134d1cae986232))
+
 ## [1.1.2](https://github.com/php-internal/toml/compare/1.1.1...1.1.2) (2026-03-31)
 
 
