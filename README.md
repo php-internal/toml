@@ -6,7 +6,8 @@
 
 <div align="center">
 
-[![Support](https://img.shields.io/static/v1?style=flat-square&label=Support&message=%E2%9D%A4&logo=GitHub&color=%23fe0086)](https://patreon.com/roxblnfk)
+![Vibe Index]()
+[![Sponsorship](https://img.shields.io/static/v1?style=flat-square&label=&message=Sponsorship&logo=Boosty&logoColor=white&color=%23F15F2C)](https://boosty.to/roxblnfk)
 
 </div>
 
