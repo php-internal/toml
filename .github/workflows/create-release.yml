@@ -32,6 +32,9 @@ jobs:
         uses: actions/checkout@v5
         with:
           ref: ${{ fromJSON(steps.release.outputs.pr).headBranchName }}
+          # PAT so the later `git push` to the PR branch is allowed (the default
+          # GITHUB_TOKEN is denied — 403 — for pushes here, same as release-please).
+          token: ${{ secrets.RELEASE_TOKEN }}
           fetch-depth: 0  # the action needs the full git history
 
       - name: ✨ Update Vibe Index badge
